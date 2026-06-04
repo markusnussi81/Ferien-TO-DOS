@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <!-- Optimierter Viewport für Web-Apps (verhindert ungewolltes Zoomen auf Mobilgeräten) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+  <!-- Apple & Android Web App Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#047857"> <!-- Emerald 700 -->
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <title>CampPacker</title>
+  
+  <!-- Tailwind CSS für das Design -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM (Version 18) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel, um den JSX Code im Browser auszuführen -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* Verhindert das Flackern beim Laden */
+    body { background-color: #f4f7f4; margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
+    #loading { display: flex; height: 100vh; width: 100vw; align-items: center; justify-content: center; color: #059669; font-weight: bold; }
+    /* Eigene Scrollbars für besseres App-Gefühl */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div id="loading">CampPacker wird geladen...</div>
+  </div>
+
+  <script type="text/babel" data-type="module">
+    const { useState, useEffect } = React;
+
+    // --- ICON KOMPONENTEN (Inline SVGs) ---
+    const IconWrapper = ({ className = "h-6 w-6", children, ...props }) => (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+        {children}
+      </svg>
+    );
+
+    const Tent = (p) => <IconWrapper {...p}><path d="M19 20 10 4"/><path d="m5 20 9-16"/><path d="M3 20h18"/><path d="m12 15-3 5"/><path d="m12 15 3 5"/></IconWrapper>;
+    const Folder = (p) => <IconWrapper {...p}><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></IconWrapper>;
+    const Plus = (p) => <IconWrapper {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconWrapper>;
+    const Trash2 = (p) => <IconWrapper {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconWrapper>;
+    const CheckSquare = (p) => <IconWrapper {...p}><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></IconWrapper>;
+    const Square = (p) => <IconWrapper {...p}><rect width="18" height="18" x="3" y="3" rx="2"/></IconWrapper>;
+    const Menu = (p) => <IconWrapper {...p}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></IconWrapper>;
+    const X = (p) => <IconWrapper {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconWrapper>;
+    const MapIcon = (p) => <IconWrapper {...p}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></IconWrapper>;
+    const ListTodo = (p) => <IconWrapper {...p}><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></IconWrapper>;
+    const TreePine = (p) => <IconWrapper {...p}><path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z"/><path d="M12 22v-3"/></IconWrapper>;
+    const Check = (p) => <IconWrapper {...p}><path d="M20 6 9 17l-5-5"/></IconWrapper>;
+    const RotateCcw = (p) => <IconWrapper {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconWrapper>;
+    const MoreVertical = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></IconWrapper>;
+    const CalendarDays = (p) => <IconWrapper {...p}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/></IconWrapper>;
+    const CopyIcon = (p) => <IconWrapper {...p}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></IconWrapper>;
+    const ArrowRightLeft = (p) => <IconWrapper {...p}><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></IconWrapper>;
+    const Edit2 = (p) => <IconWrapper {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></IconWrapper>;
+    const Clock = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconWrapper>;
+    const AlertTriangle = (p) => <IconWrapper {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></IconWrapper>;
+
+    // --- STANDARD DATEN ---
+    const createItems = (listId, names) => 
+      names.map((name, index) => ({
+        id: `item_${listId}_${index}`, 
+        listId, 
+        name, 
+        checked: false 
+      }));
+
+    const defaultFolders = [
+      { id: 'f_grosse', name: 'Grosse Reise', date: '' },
+      { id: 'f_kleine', name: 'kleine Reise', date: '' }
+    ];
+
+    const defaultLists = [
+      { id: 'l_vdr', folderId: 'f_grosse', name: 'Vor der Reise' },
+      { id: 'l_ele', folderId: 'f_grosse', name: 'Elektronik' },
+      { id: 'l_med', folderId: 'f_grosse', name: 'Medikamente' },
+      { id: 'l_cma', folderId: 'f_grosse', name: 'Ca Ma Allgemein' },
+      { id: 'l_cmh', folderId: 'f_grosse', name: 'Ca Ma Hygieneartikel' },
+      { id: 'l_nla', folderId: 'f_grosse', name: 'No Le Allgemein' },
+      { id: 'l_nlh', folderId: 'f_grosse', name: 'No Le Hygieneartikel' },
+      { id: 'l_ess', folderId: 'f_grosse', name: 'Essen' },
+      { id: 'l_wohn', folderId: 'f_grosse', name: 'Für Wohnwagen' },
+      { id: 'l_kue', folderId: 'f_grosse', name: 'Küche' },
+      { id: 'l_cos', folderId: 'f_grosse', name: 'Cosmo' },
+      { id: 'l_3d', folderId: 'f_grosse', name: '3d druck' },
+      { id: 'l_ueb', folderId: 'f_kleine', name: 'über Nacht' },
+      { id: 'l_mer', folderId: 'f_kleine', name: 'Meran' }
+    ];
+
+    const defaultItems = [
+      ...createItems('l_vdr', ['Mower', 'Kaffeemaschine trester leeren', 'Kühlschrank automation aus', 'Schloss laden', 'Einstiegshöcker neu 2025', 'Druckknopf küche ww kaputt 2025', 'Chlor auf sitzplatz', 'Roaming cat', 'Aussenkabel klima', 'Heringset zum in den Boden zu schrauben', 'Velos in die Garage stellen', 'Neue Spielsachen Überraschung', 'Unwichtige Karten aus Portemonnaie', 'Ausweise und kreditkarte scannen', 'Rollladen zurück', 'Ausdruck', 'Filme downloaden', 'Pool ferientimer', 'Spülchemie', 'Handyladegerät von Prius in Rav', 'Nackenkissen', 'Geschirrspülmaschine öffnen', 'Abfallsäcke entsorgen', 'Kühlschrank leeren', 'Rollläden öffnen/schliessen', 'Pflanzen giessen', 'Milch', 'Pool chloren', 'Hue Licht starten', 'Geld', 'Reservation', 'Comput ausschalten']),
+      ...createItems('l_ele', ['Airpods', 'Autoladekabel', 'Doppelstecker', 'Handyladekabel', 'ipad', 'ipadladekabel', 'Levi Uhr', 'Plastik unter Teppich', 'Switch', 'Tolino', 'Tonibox und figuren levi', 'Toniebox ladekabel', 'Toniebox mit figuren Noelle', 'Watch', 'Weitere kabelrolle']),
+      ...createItems('l_med', ['Algifor Kinder', 'Fiebermesser', 'ibuprofen', 'Dafalgan', 'Ohrentropfen', 'Pflaster', 'Verbandszeug', 'Zugsalbe', 'Fusspilzcreme', 'Mückenstich', 'Proto', 'Alphasteam', 'Coldpack']),
+      ...createItems('l_cma', ['Unterhosen Cathrin', 'Unterhosen Markus', 'Badehose Cat', 'Badehosen Markus', 'Badetücher fürs Meer', 'Bettdecke', 'Bh', 'Brille', 'Diffuser', 'Duschtücher gross', 'Einlegesohle', 'Einlegesohlen', 'Euros', 'Flip Flop Cat', 'Flip Flop Markus', 'Gurt', 'Hut Cat', 'Isomatte Steinstrand', 'Jäckchen Cat', 'Jäckchen Markus', 'Kappe Markus', 'Kurze Hosen Cat', 'Kurze Hosen Markus', 'Ladegerät Zahnbürste', 'Lange Hose cat', 'Lange hose Markus', 'Linsen', 'Linsenwasser', 'Oberteile Cat', 'Oberteile Markus', 'Pijama / Trainer', 'Pipipads', 'Pullover Cathrin', 'Pullover Markus', 'Schuhe Cat', 'Schuhe Markus', 'Socken Cathrin', 'Socken Markus', 'Sonnenbrille', 'Sonnenhut', 'Strandtasche', 'Tapes und Verband']),
+      ...createItems('l_cmh', ['Apressoleil', 'Bodylotion', 'Deo Cat', 'Deo Markus', 'Dildo', 'Haarwachs', 'Hautcremes', 'Langhaarschneider', 'Linsen', 'Linsenwasser', 'Mückenspray', 'Mumu Schampoo', 'Munddusche', 'Parfum Cat', 'Parfum Markus', 'Rasierer Cathrin', 'Rasierer Markus', 'Schminkzeug', 'Schnarchspange', 'Seife', 'Sonnencreme', 'Zahnbürste', 'Zahnpasta']),
+      ...createItems('l_nla', ['Badehosen', 'Bademantel', 'Badetuch', 'Bettdecken', 'Bücher', 'Flügeli', 'Helm', 'Hosen', 'Kappe', 'Kickboard', 'Kopfkissen', 'Kuscheltiere Levi', 'Kuscheltiere Noelle', 'Lego Monster', 'Leintuch', 'Ninjago Lego', 'Noelles Kuschelhund', 'Pijama', 'Portemonnaie Noelle', 'Röckli', 'Rucksack', 'Socken', 'Sonnenbrille', 'Sonnencreme', 'Spielsachen Noelle', 'Spielsachen Levi', 'Taucherbrille', 'Tonibox', 'Unterhose', 'Velo']),
+      ...createItems('l_nlh', ['Zahnbürste', 'Zahnpasta', 'Haarbürste', 'Deo Noelle', 'Levi Penisspülung', 'Shampoo']),
+      ...createItems('l_ess', ['div. Brötli', 'Zucker', 'Wasser für unterwegs', 'Spaghetti', 'Sandwichs', 'Salz im keller erster schrank', 'Red Bull', 'Rapsöl', 'Pfeffermühle', 'Ovo', 'Milch', 'Maizena', 'Maisbrot', 'Knabberzeugs', 'Kaffee', 'Hummus', 'Haferflocken', 'Gewürze', 'Ficken', 'Cracker', 'Bier', 'Apfelessig']),
+      ...createItems('l_wohn', ['Wäscheklammern', 'Bett Reparatur', 'Activity', '100 Kleber Wohnwagen', 'Zweitschlüssel', 'Weitere Kabelrolle', 'Wc Papier', 'Waschmaschine', 'Vorzeltteppich 6x 2.5', 'Vignette', 'Ventilator', 'Venti noelle', 'Überzüge', 'Swiffer', 'Spiele', 'Spiel Bünzlitum', 'Schraube akku hering kont', 'Schnur', 'Schirm', 'Neues Licht', 'Neue Heringe', 'Musikbox', 'Licht kontrollieren', 'Kühltaschen', 'Klimaanlage', 'Klatschen Spiel', 'Kerzen', 'Kabelrolle', 'Ikeataschen', 'Handtücher', 'Hammer', 'Gasflasche', 'Elektrischer fliegenfänger', 'Bollerwagen', 'Bohrer für Heringe', 'Akkuschrauber', 'Akkusauger', '3 kabelrle', '110lt Abfallsack'])
+    ];
+
+    // --- HAUPTKOMPONENTE ---
+    function App() {
+      const storageKey = 'campingData_html_v1';
+      
+      const [folders, setFolders] = useState(() => {
+        const saved = localStorage.getItem(`${storageKey}_folders`);
+        return saved ? JSON.parse(saved) : defaultFolders;
+      });
+      const [lists, setLists] = useState(() => {
+        const saved = localStorage.getItem(`${storageKey}_lists`);
+        return saved ? JSON.parse(saved) : defaultLists;
+      });
+      const [items, setItems] = useState(() => {
+        const saved = localStorage.getItem(`${storageKey}_items`);
+        return saved ? JSON.parse(saved) : defaultItems;
+      });
+
+      const [activeFolderId, setActiveFolderId] = useState(folders[0]?.id || null);
+      const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+      const [appTitle, setAppTitle] = useState(() => localStorage.getItem(`${storageKey}_title`) || 'CampPacker');
+      
+      const [activeListId, setActiveListId] = useState(() => {
+        const firstFolderId = folders[0]?.id;
+        return lists.find(l => l.folderId === firstFolderId)?.id || null;
+      });
+
+      const [editingId, setEditingId] = useState(null);
+      const [editValue, setEditValue] = useState('');
+      const [openMenuId, setOpenMenuId] = useState(null);
+      const [isBulkMode, setIsBulkMode] = useState(false);
+      const [selectedItemIds, setSelectedItemIds] = useState([]);
+
+      const [transferModal, setTransferModal] = useState({
+        isOpen: false, action: null, sourceType: null, sourceId: null
+      });
+      const [targetFolderId, setTargetFolderId] = useState('');
+      const [targetListId, setTargetListId] = useState('');
+
+      // Custom Confirm Dialog State
+      const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
+
+      const [newFolderName, setNewFolderName] = useState('');
+      const [newListNames, setNewListNames] = useState({});
+      const [newItemNames, setNewItemNames] = useState({});
+
+      useEffect(() => {
+        localStorage.setItem(`${storageKey}_folders`, JSON.stringify(folders));
+        localStorage.setItem(`${storageKey}_lists`, JSON.stringify(lists));
+        localStorage.setItem(`${storageKey}_items`, JSON.stringify(items));
+        localStorage.setItem(`${storageKey}_title`, appTitle);
+      }, [folders, lists, items, appTitle]);
+
+      useEffect(() => {
+        const handleClickOutside = () => setOpenMenuId(null);
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+      }, []);
+
+      useEffect(() => {
+        setIsBulkMode(false);
+        setSelectedItemIds([]);
+      }, [activeListId]);
+
+      const generateId = () => Math.random().toString(36).substr(2, 9);
+
+      const getDaysLeft = (dateStr) => {
+        if (!dateStr) return null;
+        const targetDate = new Date(dateStr);
+        const today = new Date();
+        targetDate.setHours(0,0,0,0);
+        today.setHours(0,0,0,0);
+        const diffTime = targetDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 1) return `Noch ${diffDays} Tage`;
+        if (diffDays === 1) return `Morgen!`;
+        if (diffDays === 0) return `Heute!`;
+        if (diffDays < 0) return `Vorbei`;
+        return null;
+      };
+
+      const openConfirm = (message, onConfirm) => {
+        setConfirmDialog({ isOpen: true, message, onConfirm });
+      };
+
+      const closeConfirm = () => {
+        setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+      };
+
+      const addFolder = (e) => {
+        e.preventDefault();
+        if (!newFolderName.trim()) return;
+        const newFolder = { id: generateId(), name: newFolderName.trim(), date: '' };
+        setFolders([...folders, newFolder]);
+        setNewFolderName('');
+        if (!activeFolderId) {
+          setActiveFolderId(newFolder.id);
+          setActiveListId(null);
+        }
+      };
+
+      const deleteFolder = (folderId) => {
+        openConfirm('Trip und alle Inhalte wirklich löschen?', () => {
+          setFolders(folders.filter(f => f.id !== folderId));
+          setLists(lists.filter(l => l.folderId !== folderId));
+          if (activeFolderId === folderId) {
+            const nextFolder = folders.length > 1 ? folders.find(f => f.id !== folderId) : null;
+            setActiveFolderId(nextFolder ? nextFolder.id : null);
+            setActiveListId(nextFolder ? lists.find(l => l.folderId === nextFolder.id)?.id || null : null);
+          }
+        });
+      };
+
+      const addList = (e, folderId) => {
+        e.preventDefault();
+        const name = newListNames[folderId];
+        if (!name?.trim()) return;
+        const newList = { id: generateId(), folderId, name: name.trim() };
+        setLists([...lists, newList]);
+        setNewListNames({ ...newListNames, [folderId]: '' });
+        setActiveListId(newList.id);
+      };
+
+      const deleteList = (listId) => {
+        openConfirm('Kategorie wirklich löschen?', () => {
+          setLists(lists.filter(l => l.id !== listId));
+          if (activeListId === listId) {
+            const remainingInFolder = lists.filter(l => l.folderId === activeFolderId && l.id !== listId);
+            setActiveListId(remainingInFolder.length > 0 ? remainingInFolder[0].id : null);
+          }
+        });
+      };
+
+      const addItem = (e, listId) => {
+        e.preventDefault();
+        const name = newItemNames[listId];
+        if (!name?.trim()) return;
+        const newItem = { id: generateId(), listId, name: name.trim(), checked: false };
+        setItems([...items, newItem]);
+        setNewItemNames({ ...newItemNames, [listId]: '' });
+      };
+
+      const deleteItem = (itemId) => {
+        setItems(items.filter(i => i.id !== itemId));
+      };
+
+      const toggleItem = (itemId) => {
+        if (isBulkMode) {
+          setSelectedItemIds(prev => 
+            prev.includes(itemId) ? prev.filter(id => id !== itemId) : [...prev, itemId]
+          );
+        } else {
+          setItems(items.map(item => item.id === itemId ? { ...item, checked: !item.checked } : item));
+        }
+      };
+
+      const startEdit = (id, initialValue) => {
+        setEditingId(id);
+        setEditValue(initialValue);
+        setOpenMenuId(null);
+      };
+
+      const saveEdit = () => {
+        if (!editingId) return;
+        const [type, id] = editingId.split('-');
+        if (editValue.trim() !== '') {
+          if (type === 'app') setAppTitle(editValue.trim());
+          else if (type === 'folder') setFolders(folders.map(f => f.id === id ? { ...f, name: editValue.trim() } : f));
+          else if (type === 'list') setLists(lists.map(l => l.id === id ? { ...l, name: editValue.trim() } : l));
+          else if (type === 'item') setItems(items.map(i => i.id === id ? { ...i, name: editValue.trim() } : i));
+        }
+        setEditingId(null);
+      };
+
+      const handleEditKeyDown = (e) => {
+        if (e.key === 'Enter') saveEdit();
+        if (e.key === 'Escape') setEditingId(null);
+      };
+
+      const handleDateChange = (folderId, newDate) => {
+        setFolders(folders.map(f => f.id === folderId ? { ...f, date: newDate } : f));
+      };
+
+      const reactivateAllInFolder = (folderId) => {
+        const folderListIds = lists.filter(l => l.folderId === folderId).map(l => l.id);
+        setItems(items.map(i => folderListIds.includes(i.listId) ? { ...i, checked: false } : i));
+      };
+
+      const openTransferModal = (action, sourceType, sourceId) => {
+        setTargetFolderId(activeFolderId);
+        if (sourceType === 'item' || sourceType === 'bulk-items') {
+           const availableLists = lists.filter(l => l.folderId === activeFolderId);
+           setTargetListId(availableLists.length > 0 ? availableLists[0].id : '');
+        } else {
+           setTargetListId('');
+        }
+        setTransferModal({ isOpen: true, action, sourceType, sourceId });
+        setOpenMenuId(null);
+      };
+
+      const executeTransfer = () => {
+        const { action, sourceType, sourceId } = transferModal;
+
+        if (sourceType === 'list') {
+          const listToProcess = lists.find(l => l.id === sourceId);
+          if (action === 'move') {
+            setLists(lists.map(l => l.id === sourceId ? { ...l, folderId: targetFolderId } : l));
+            if (targetFolderId !== activeFolderId && activeListId === sourceId) setActiveListId(null);
+          } else if (action === 'copy') {
+            const newListId = generateId();
+            setLists([...lists, { ...listToProcess, id: newListId, folderId: targetFolderId }]);
+            const itemsToCopy = items.filter(i => i.listId === sourceId);
+            const newItems = itemsToCopy.map(i => ({ ...i, id: generateId(), listId: newListId, checked: false }));
+            setItems([...items, ...newItems]);
+          }
+        } 
+        else if (sourceType === 'item' || sourceType === 'bulk-items') {
+          const idsToProcess = Array.isArray(sourceId) ? sourceId : [sourceId];
+          if (!targetListId) {
+            // Replaced alert with openConfirm but since it's just info, we'll auto close or use a simpler state
+            return;
+          }
+          if (action === 'move') {
+            setItems(items.map(i => idsToProcess.includes(i.id) ? { ...i, listId: targetListId } : i));
+          } else if (action === 'copy') {
+            const itemsToCopy = items.filter(i => idsToProcess.includes(i.id));
+            const newItems = itemsToCopy.map(i => ({ ...i, id: generateId(), listId: targetListId, checked: false }));
+            setItems([...items, ...newItems]);
+          }
+        }
+        setTransferModal({ isOpen: false, action: null, sourceType: null, sourceId: null });
+        setIsBulkMode(false);
+        setSelectedItemIds([]);
+      };
+
+      const executeBulkDelete = () => {
+        openConfirm(`${selectedItemIds.length} Utensilien wirklich löschen?`, () => {
+          setItems(items.filter(i => !selectedItemIds.includes(i.id)));
+          setIsBulkMode(false);
+          setSelectedItemIds([]);
+        });
+      };
+
+      const renderInlineInput = (id, containerClasses = "flex-1") => (
+        <div className={`flex items-center gap-2 ${containerClasses}`}>
+          <input
+            autoFocus
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleEditKeyDown}
+            onBlur={saveEdit}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white border-2 border-emerald-400 rounded px-2 py-1 text-sm text-stone-800 outline-none w-full shadow-sm font-normal"
+          />
+        </div>
+      );
+
+      const DropdownMenu = ({ id, options }) => {
+        if (openMenuId !== id) return null;
+        return (
+          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-stone-100 py-1 z-50">
+            {options.map((opt, idx) => (
+              opt.separator ? (
+                <div key={`sep-${idx}`} className="h-px bg-stone-100 my-1 w-full" />
+              ) : (
+                <button
+                  key={opt.label}
+                  onClick={(e) => { e.stopPropagation(); opt.action(); setOpenMenuId(null); }}
+                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${
+                    opt.danger ? 'text-red-600 hover:bg-red-50' : 'text-stone-700 hover:bg-stone-50'
+                  }`}
+                >
+                  {opt.icon} {opt.label}
+                </button>
+              )
+            ))}
+          </div>
+        );
+      };
+
+      const activeFolder = folders.find(f => f.id === activeFolderId);
+      const activeLists = lists.filter(l => l.folderId === activeFolderId);
+      const activeList = activeLists.find(l => l.id === activeListId) || activeLists[0];
+      const currentListItems = items.filter(i => i.listId === activeList?.id);
+      const openItems = currentListItems.filter(i => !i.checked);
+      const doneItems = currentListItems.filter(i => i.checked);
+
+      const getFolderProgress = (folderId) => {
+        const folderLists = lists.filter(l => l.folderId === folderId);
+        const listIds = folderLists.map(l => l.id);
+        const folderItems = items.filter(i => listIds.includes(i.listId));
+        if (folderItems.length === 0) return 0;
+        return Math.round((folderItems.filter(i => i.checked).length / folderItems.length) * 100);
+      };
+
+      return (
+        <div className="h-screen w-full bg-[#f4f7f4] font-sans text-stone-800 flex flex-col md:flex-row overflow-hidden relative">
+          
+          {/* Mobile Header */}
+          <div className="md:hidden bg-emerald-700 text-white p-4 flex justify-between items-center shadow-md z-20">
+            <div className="flex items-center gap-2 font-bold text-xl flex-1 cursor-pointer" onClick={() => startEdit('app-title-mobile', appTitle)}>
+              <Tent className="h-6 w-6 text-emerald-200" />
+              {editingId === 'app-title-mobile' ? renderInlineInput('app-title-mobile') : <span className="truncate">{appTitle}</span>}
+            </div>
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-emerald-600 rounded">
+              {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+
+          {/* Sidebar (Explorer) */}
+          <aside className={`
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+            md:translate-x-0 transition-transform duration-300 ease-in-out
+            fixed md:static top-0 left-0 h-full w-[80%] md:w-80 
+            bg-white border-r border-stone-200 shadow-xl md:shadow-none z-30 flex flex-col
+          `}>
+            <div className="p-6 bg-emerald-700 text-white hidden md:flex items-center gap-3 shrink-0">
+              <TreePine className="h-8 w-8 text-emerald-200 flex-shrink-0" />
+              <div className="min-w-0 flex-1 cursor-pointer" onClick={() => startEdit('app-title-desktop', appTitle)}>
+                <h1 className="font-bold text-xl tracking-wide truncate">
+                  {editingId === 'app-title-desktop' ? renderInlineInput('app-title-desktop') : appTitle}
+                </h1>
+                <p className="text-emerald-200 text-xs uppercase tracking-wider font-semibold">Explorer</p>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 pb-24">
+              <h2 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-4 px-2">Geplante Reisen</h2>
+              
+              <ul className="space-y-2">
+                {folders.map(folder => {
+                  const progress = getFolderProgress(folder.id);
+                  const isActiveFolder = activeFolderId === folder.id;
+                  const folderLists = lists.filter(l => l.folderId === folder.id);
+
+                  return (
+                    <li key={folder.id}>
+                      <div
+                        className={`w-full text-left rounded-xl flex items-center justify-between transition-all ${
+                          isActiveFolder ? 'bg-stone-50 border border-stone-200 shadow-sm' : 'hover:bg-stone-50 border border-transparent'
+                        }`}
+                      >
+                        <div
+                          onClick={() => {
+                            setActiveFolderId(folder.id);
+                            setActiveListId(folderLists.length > 0 ? folderLists[0].id : null);
+                            if (window.innerWidth < 768 && folderLists.length === 0) setIsSidebarOpen(false);
+                          }}
+                          className="flex-1 text-left px-4 py-3 flex items-center gap-3 overflow-hidden cursor-pointer"
+                        >
+                          <MapIcon className={`h-5 w-5 flex-shrink-0 ${isActiveFolder ? 'text-emerald-600' : 'text-stone-400'}`} />
+                          <div className={`truncate font-medium flex-1 ${isActiveFolder ? 'text-stone-800' : 'text-stone-600'}`}>
+                            {editingId === `folder-${folder.id}` ? renderInlineInput(`folder-${folder.id}`) : folder.name}
+                          </div>
+                        </div>
+
+                        <div className="relative pr-2 shrink-0">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-folder-${folder.id}`); }}
+                            className="p-1.5 text-stone-400 hover:text-emerald-600 rounded-md hover:bg-stone-100"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+                          <DropdownMenu 
+                            id={`menu-folder-${folder.id}`} 
+                            options={[
+                              { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`folder-${folder.id}`, folder.name) },
+                              { separator: true },
+                              { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteFolder(folder.id), danger: true }
+                            ]} 
+                          />
+                        </div>
+                      </div>
+
+                      <div className="px-4 mt-1 mb-2">
+                         <div className="h-1 w-full bg-stone-100 rounded-full overflow-hidden">
+                           <div className={`h-full transition-all duration-500 ${progress === 100 ? 'bg-emerald-500' : 'bg-amber-400'}`} style={{ width: `${progress}%` }} />
+                         </div>
+                      </div>
+
+                      {isActiveFolder && (
+                        <div className="ml-6 pl-3 border-l-2 border-emerald-100 space-y-1 mb-4">
+                          {folderLists.map(list => {
+                            const isActiveList = activeListId === list.id;
+                            return (
+                              <div 
+                                key={list.id} 
+                                className={`flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+                                  isActiveList ? 'bg-emerald-50 text-emerald-800 font-semibold shadow-sm border border-emerald-100' : 'hover:bg-stone-100 text-stone-600'
+                                }`}
+                              >
+                                <div 
+                                  className="flex items-center gap-2 flex-1 overflow-hidden" 
+                                  onClick={() => {
+                                    setActiveListId(list.id);
+                                    if (window.innerWidth < 768) setIsSidebarOpen(false);
+                                  }}
+                                >
+                                  <ListTodo className={`h-4 w-4 flex-shrink-0 ${isActiveList ? 'text-emerald-600' : 'text-stone-400'}`} />
+                                  <div className="truncate flex-1">
+                                    {editingId === `list-${list.id}` ? renderInlineInput(`list-${list.id}`) : list.name}
+                                  </div>
+                                </div>
+                                
+                                <div className="relative shrink-0">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-list-${list.id}`); }}
+                                    className="p-1 text-stone-400 hover:text-emerald-600 rounded"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </button>
+                                  <DropdownMenu 
+                                    id={`menu-list-${list.id}`} 
+                                    options={[
+                                      { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`list-${list.id}`, list.name) },
+                                      { separator: true },
+                                      { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'list', list.id) },
+                                      { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'list', list.id) },
+                                      { separator: true },
+                                      { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteList(list.id), danger: true }
+                                    ]} 
+                                  />
+                                </div>
+                              </div>
+                            )
+                          })}
+                          
+                          <form onSubmit={(e) => addList(e, folder.id)} className="px-3 py-1.5 mt-1">
+                            <input
+                              type="text"
+                              placeholder="+ Neue Kategorie"
+                              value={newListNames[folder.id] || ''}
+                              onChange={(e) => setNewListNames({ ...newListNames, [folder.id]: e.target.value })}
+                              className="w-full bg-transparent text-sm border-b border-dashed border-stone-300 py-1 outline-none focus:border-emerald-500 text-stone-600 placeholder:text-stone-400 transition-colors"
+                            />
+                          </form>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {folders.length === 0 && <div className="text-center p-6 text-stone-400 text-sm">Keine Trips vorhanden.</div>}
+            </div>
+
+            {/* Feste Form am Boden der Sidebar */}
+            <div className="p-4 bg-white border-t border-stone-100 shrink-0">
+              <form onSubmit={addFolder}>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Neuen Trip anlegen..."
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-4 pr-10 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all placeholder:text-stone-400"
+                  />
+                  <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 p-1 bg-white rounded-lg shadow-sm">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </form>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <main className="flex-1 flex flex-col h-full overflow-hidden bg-[#f4f7f4]">
+            {activeFolder ? (
+              <>
+                <header className="bg-white pt-6 pb-6 border-b border-stone-200 shadow-sm flex-shrink-0 z-10 px-6">
+                  <div className="max-w-3xl mx-auto">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                      <div className="flex-1 min-w-[60%]">
+                        <span className="text-emerald-600 font-semibold text-sm tracking-wider uppercase mb-1 flex items-center gap-2">
+                          Aktueller Trip
+                          {getDaysLeft(activeFolder.date) && (
+                             <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full text-xs flex items-center gap-1">
+                               <Clock className="h-3 w-3"/> {getDaysLeft(activeFolder.date)}
+                             </span>
+                          )}
+                        </span>
+                        <h2 className="text-3xl font-extrabold text-stone-800 flex items-center gap-3">
+                          <div className="flex-1 min-w-0" onClick={() => startEdit(`folder-header-${activeFolder.id}`, activeFolder.name)}>
+                             {editingId === `folder-header-${activeFolder.id}` ? renderInlineInput(`folder-header-${activeFolder.id}`) : <span className="truncate block cursor-pointer">{activeFolder.name}</span>}
+                          </div>
+                        </h2>
+                        
+                        <div className="mt-2 flex items-center gap-2 text-stone-500 text-sm">
+                           <CalendarDays className="h-4 w-4" />
+                           <input 
+                             type="date" 
+                             value={activeFolder.date || ''} 
+                             onChange={(e) => handleDateChange(activeFolder.id, e.target.value)}
+                             className="bg-transparent border-none outline-none text-stone-500 hover:text-emerald-600 cursor-pointer p-0 m-0 font-medium"
+                           />
+                        </div>
+                      </div>
+
+                      {getFolderProgress(activeFolder.id) > 0 && (
+                        <button 
+                           onClick={() => reactivateAllInFolder(activeFolder.id)}
+                           className="text-sm font-medium flex items-center gap-2 text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 px-4 py-2 rounded-xl transition-colors shadow-sm"
+                        >
+                           <RotateCcw className="h-4 w-4" /> Reaktivieren
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                  <div className="max-w-3xl mx-auto">
+                    {activeList ? (
+                      <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-4 md:p-8 mb-24">
+                        
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-stone-100">
+                          <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600">
+                            <ListTodo className="h-6 w-6" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-stone-800 flex-1 cursor-pointer" onClick={() => startEdit(`list-header-${activeList.id}`, activeList.name)}>
+                             {editingId === `list-header-${activeList.id}` ? renderInlineInput(`list-header-${activeList.id}`) : activeList.name}
+                          </h3>
+                          
+                          {(openItems.length > 0 || doneItems.length > 0) && (
+                            <button
+                              onClick={() => { setIsBulkMode(!isBulkMode); setSelectedItemIds([]); }}
+                              className={`text-sm px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors border ${
+                                isBulkMode ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-white text-stone-500 border-stone-200 hover:bg-stone-50'
+                              }`}
+                            >
+                              <Edit2 className="h-4 w-4"/> {isBulkMode ? 'Fertig' : 'Mehrere bearbeiten'}
+                            </button>
+                          )}
+                        </div>
+
+                        {!isBulkMode && (
+                          <form onSubmit={(e) => addItem(e, activeList.id)} className="mb-8">
+                            <div className="relative shadow-sm rounded-xl">
+                              <input
+                                type="text"
+                                placeholder={`Was brauchst du für "${activeList.name}"?`}
+                                value={newItemNames[activeList.id] || ''}
+                                onChange={(e) => setNewItemNames({ ...newItemNames, [activeList.id]: e.target.value })}
+                                className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-4 pr-12 text-sm focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all placeholder:text-stone-500"
+                              />
+                              <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-white bg-emerald-500 hover:bg-emerald-600 p-1.5 rounded-lg transition-colors">
+                                <Plus className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </form>
+                        )}
+
+                        <ul className="space-y-1 mb-8">
+                          {openItems.map(item => (
+                            <li 
+                              key={item.id} 
+                              className="flex items-center justify-between p-2 hover:bg-emerald-50/50 rounded-xl transition-colors border border-transparent hover:border-emerald-100 cursor-pointer" 
+                              onClick={() => toggleItem(item.id)}
+                            >
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <span className="flex-shrink-0 text-stone-300 transition-colors">
+                                  {isBulkMode ? (
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${selectedItemIds.includes(item.id) ? 'bg-emerald-500 border-emerald-500' : 'border-stone-300'}`}>
+                                      {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 text-white" />}
+                                    </div>
+                                  ) : (
+                                    <Square className="h-6 w-6 hover:text-emerald-500" />
+                                  )}
+                                </span>
+                                <div className="flex-1 text-stone-700 font-medium text-base truncate">
+                                   {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
+                                </div>
+                              </div>
+                              
+                              {!isBulkMode && (
+                                <div className="relative pl-2 shrink-0">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-item-${item.id}`); }}
+                                    className="p-1.5 text-stone-400 hover:text-emerald-600 rounded-md hover:bg-stone-100"
+                                  >
+                                    <MoreVertical className="h-5 w-5" />
+                                  </button>
+                                  <DropdownMenu 
+                                    id={`menu-item-${item.id}`} 
+                                    options={[
+                                      { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`item-${item.id}`, item.name) },
+                                      { separator: true },
+                                      { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
+                                      { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
+                                      { separator: true },
+                                      { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
+                                    ]} 
+                                  />
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                          
+                          {openItems.length === 0 && doneItems.length === 0 && (
+                             <div className="text-center py-10 text-stone-400">Keine Utensilien vorhanden.</div>
+                          )}
+                        </ul>
+
+                        {doneItems.length > 0 && (
+                          <div className="mt-8 pt-6 border-t border-stone-100">
+                            <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider mb-4 px-2">Erledigt ({doneItems.length})</h4>
+                            <ul className="space-y-1 opacity-60 hover:opacity-100 transition-opacity duration-300">
+                              {doneItems.map(item => (
+                                 <li 
+                                   key={item.id} 
+                                   className="flex items-center justify-between p-2 hover:bg-stone-50 rounded-xl transition-colors cursor-pointer" 
+                                   onClick={() => toggleItem(item.id)}
+                                 >
+                                   <div className="flex items-center gap-3 flex-1 min-w-0">
+                                     <span className="flex-shrink-0">
+                                       {isBulkMode ? (
+                                         <div className={`w-5 h-5 rounded border flex items-center justify-center ${selectedItemIds.includes(item.id) ? 'bg-emerald-500 border-emerald-500' : 'border-stone-300'}`}>
+                                           {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 text-white" />}
+                                         </div>
+                                       ) : (
+                                         <CheckSquare className="h-6 w-6 text-emerald-500" />
+                                       )}
+                                     </span>
+                                     <div className="flex-1 text-stone-500 line-through text-base truncate">
+                                        {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
+                                     </div>
+                                   </div>
+                                   
+                                   {!isBulkMode && (
+                                     <div className="relative pl-2 shrink-0">
+                                       <button 
+                                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-item-done-${item.id}`); }}
+                                         className="p-1.5 text-stone-400 hover:text-emerald-600 rounded-md hover:bg-stone-200"
+                                       >
+                                         <MoreVertical className="h-5 w-5" />
+                                       </button>
+                                       <DropdownMenu 
+                                         id={`menu-item-done-${item.id}`} 
+                                         options={[
+                                           { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`item-${item.id}`, item.name) },
+                                           { separator: true },
+                                           { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
+                                           { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
+                                           { separator: true },
+                                           { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
+                                         ]} 
+                                       />
+                                     </div>
+                                   )}
+                                 </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center p-12 bg-white rounded-2xl border border-dashed border-stone-200">
+                        <Folder className="h-16 w-16 text-emerald-100 mx-auto mb-4" />
+                        <h3 className="text-lg font-bold text-stone-700 mb-2">Keine Kategorie ausgewählt</h3>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Bulk Action Leiste */}
+                {isBulkMode && selectedItemIds.length > 0 && (
+                  <div className="fixed bottom-0 left-0 md:left-80 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-40 flex justify-center gap-4">
+                     <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-medium transition-colors">
+                       <ArrowRightLeft className="h-4 w-4"/> Verschieben ({selectedItemIds.length})
+                     </button>
+                     <button onClick={() => openTransferModal('copy', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-medium transition-colors">
+                       <CopyIcon className="h-4 w-4"/> Kopieren
+                     </button>
+                     <button onClick={executeBulkDelete} className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-medium transition-colors">
+                       <Trash2 className="h-4 w-4"/> Löschen
+                     </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500">
+                <Tent className="h-24 w-24 text-emerald-200 mb-6" />
+                <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim CampPacker</h2>
+              </div>
+            )}
+          </main>
+
+          {/* Custom Confirm Modal */}
+          {confirmDialog.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/60 z-50 flex items-center justify-center p-4" onClick={closeConfirm}>
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden transform transition-all" onClick={e => e.stopPropagation()}>
+                <div className="p-6">
+                  <div className="flex items-center gap-3 text-red-600 mb-4">
+                    <AlertTriangle className="h-6 w-6" />
+                    <h3 className="text-lg font-bold">Bestätigen</h3>
+                  </div>
+                  <p className="text-stone-600 mb-6">{confirmDialog.message}</p>
+                  <div className="flex justify-end gap-3">
+                    <button 
+                      onClick={closeConfirm}
+                      className="px-4 py-2 text-stone-500 font-medium hover:bg-stone-100 rounded-xl transition-colors"
+                    >
+                      Abbrechen
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if(confirmDialog.onConfirm) confirmDialog.onConfirm();
+                        closeConfirm();
+                      }}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors"
+                    >
+                      Löschen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Transfer Modal */}
+          {transferModal.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/60 z-50 flex items-center justify-center p-4" onClick={() => setTransferModal({isOpen: false})}>
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-stone-100">
+                  <h3 className="text-xl font-bold text-stone-800">
+                    {transferModal.action === 'move' ? 'Verschieben nach...' : 'Kopieren nach...'}
+                  </h3>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-stone-500 mb-2">Ziel-Trip (Ordner)</label>
+                    <select 
+                      value={targetFolderId} 
+                      onChange={(e) => {
+                        setTargetFolderId(e.target.value);
+                        const folderLists = lists.filter(l => l.folderId === e.target.value);
+                        setTargetListId(folderLists.length > 0 ? folderLists[0].id : '');
+                      }}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 outline-none focus:border-emerald-500"
+                    >
+                      <option value="" disabled>Bitte wählen...</option>
+                      {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </select>
+                  </div>
+
+                  {(transferModal.sourceType === 'item' || transferModal.sourceType === 'bulk-items') && targetFolderId && (
+                    <div>
+                      <label className="block text-sm font-semibold text-stone-500 mb-2">Ziel-Kategorie (Liste)</label>
+                      <select 
+                        value={targetListId} 
+                        onChange={(e) => setTargetListId(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 outline-none focus:border-emerald-500"
+                      >
+                        <option value="" disabled>Bitte wählen...</option>
+                        {lists.filter(l => l.folderId === targetFolderId).map(l => (
+                           <option key={l.id} value={l.id}>{l.name}</option>
+                        ))}
+                      </select>
+                      {lists.filter(l => l.folderId === targetFolderId).length === 0 && (
+                         <p className="text-xs text-amber-600 mt-2">Dieser Trip hat noch keine Kategorien. Bitte erstelle zuerst eine Kategorie in diesem Trip.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4 bg-stone-50 flex justify-end gap-3 border-t border-stone-100">
+                  <button 
+                    onClick={() => setTransferModal({isOpen: false})}
+                    className="px-4 py-2 text-stone-500 font-medium hover:bg-stone-200 rounded-xl transition-colors"
+                  >
+                    Abbrechen
+                  </button>
+                  <button 
+                    onClick={executeTransfer}
+                    disabled={transferModal.sourceType !== 'list' && !targetListId}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {transferModal.action === 'move' ? <ArrowRightLeft className="h-4 w-4"/> : <CopyIcon className="h-4 w-4"/>}
+                    Ausführen
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isSidebarOpen && <div className="fixed inset-0 bg-stone-900/50 z-20 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+        </div>
+      );
+    }
+
+    // --- APP STARTEN ---
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>
