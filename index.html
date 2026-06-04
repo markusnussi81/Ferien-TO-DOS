@@ -235,6 +235,7 @@
       const [newFolderName, setNewFolderName] = useState('');
       const [newListNames, setNewListNames] = useState({});
       const [newItemNames, setNewItemNames] = useState({});
+      const [showListInputFor, setShowListInputFor] = useState(null);
 
       const [localRegion, setLocalRegion] = useState('');
       const [weatherCache, setWeatherCache] = useState({});
@@ -453,8 +454,14 @@
         const [type, id] = editingId.split('-');
         if (editValue.trim() !== '') {
           if (type === 'app') setAppTitle(editValue.trim()); 
-          else if (type === 'folder') await setDoc(getDocRef('folders', id), { name: editValue.trim() }, { merge: true });
-          else if (type === 'list') await setDoc(getDocRef('lists', id), { name: editValue.trim() }, { merge: true });
+          else if (type === 'folder' || type === 'folder-header') {
+            const folderId = type === 'folder' ? id : editingId.replace('folder-header-', '');
+            await setDoc(getDocRef('folders', folderId), { name: editValue.trim() }, { merge: true });
+          }
+          else if (type === 'list' || type === 'list-header') {
+            const listId = type === 'list' ? id : editingId.replace('list-header-', '');
+            await setDoc(getDocRef('lists', listId), { name: editValue.trim() }, { merge: true });
+          }
           else if (type === 'item') {
             const parsed = parseItemInput(editValue.trim());
             const targetItem = items.find(i => i.id === id);
@@ -541,7 +548,7 @@
         setTransferModal({ isOpen: true, action, sourceType, sourceId }); setOpenMenuId(null);
       };
 
-      const renderInlineInput = (id, containerClasses = "flex-1") => (
+      const renderInlineInput = (id, containerClasses = "flex-1 min-w-0") => (
         <div className={`flex items-center gap-2 ${containerClasses}`}>
           <input autoFocus type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={saveEdit} onClick={(e) => e.stopPropagation()} className="bg-white border-2 border-violet-400 rounded-lg px-2 py-1 text-sm text-stone-800 outline-none w-full shadow-inner font-normal" />
         </div>
@@ -572,6 +579,16 @@
          return 'bg-lime-100 hover:bg-lime-200 border-lime-300 shadow-sm';
       };
 
+      const getFolderStats = (folderId) => {
+        const folderLists = lists.filter(l => l.folderId === folderId);
+        const listIds = folderLists.map(l => l.id);
+        const folderItems = items.filter(i => listIds.includes(i.listId));
+        const total = folderItems.length;
+        const done = folderItems.filter(i => i.checked).length;
+        const progress = total === 0 ? 0 : Math.round((done / total) * 100);
+        return { total, done, progress };
+      };
+
       if (isLoading) return null; 
 
       const activeFolder = folders.find(f => f.id === activeFolderId);
@@ -590,14 +607,7 @@
 
       const openItems = sortedCurrentItems.filter(i => !i.checked);
       const doneItems = sortedCurrentItems.filter(i => i.checked);
-
-      const getFolderProgress = (folderId) => {
-        const folderLists = lists.filter(l => l.folderId === folderId);
-        const listIds = folderLists.map(l => l.id);
-        const folderItems = items.filter(i => listIds.includes(i.listId));
-        if (folderItems.length === 0) return 0;
-        return Math.round((folderItems.filter(i => i.checked).length / folderItems.length) * 100);
-      };
+      const activeStats = activeFolder ? getFolderStats(activeFolder.id) : { total: 0, done: 0 };
 
       const handleSelectAll = () => {
          if (selectedItemIds.length === currentListItems.length) setSelectedItemIds([]); 
@@ -612,7 +622,7 @@
               <Tent className="h-6 w-6 text-violet-200 shrink-0" />
               <div className="flex items-center min-w-0">
                 <span className="truncate">{appTitle}</span>
-                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.4.2</span>
+                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.4.3</span>
               </div>
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/20 rounded transition-colors shrink-0">
@@ -631,7 +641,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.4.2</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.4.3</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -641,7 +651,8 @@
               <h2 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 md:mb-4 px-2">Geplante Reisen</h2>
               <ul className="space-y-3">
                 {folders.map(folder => {
-                  const progress = getFolderProgress(folder.id);
+                  const stats = getFolderStats(folder.id);
+                  const progress = stats.progress;
                   const isActiveFolder = activeFolderId === folder.id;
                   const folderLists = lists.filter(l => l.folderId === folder.id);
 
@@ -671,36 +682,50 @@
                       </div>
 
                       {isActiveFolder && (
-                        <div className="ml-6 pl-3 border-l-2 border-violet-100/50 space-y-1.5 mb-6">
-                          {folderLists.map(list => {
-                            const isActiveList = activeListId === list.id;
-                            return (
-                              <div key={list.id} className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 ${isActiveList ? 'bg-white shadow-sm border border-violet-100/50' : 'hover:bg-white/50 text-stone-600'}`}>
-                                <div className="flex items-center gap-2.5 flex-1 overflow-hidden" onClick={() => { setActiveListId(list.id); if (window.innerWidth < 768) setIsSidebarOpen(false); }}>
-                                  <span className="text-base flex-shrink-0 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
-                                      {list.icon || getCategoryEmoji(list.name)}
-                                  </span>
-                                  <div className={`truncate flex-1 font-medium text-sm md:text-sm ${isActiveList ? 'text-violet-800' : 'text-stone-600'}`}>
-                                    {editingId === `list-${list.id}` ? renderInlineInput(`list-${list.id}`) : list.name}
+                        <div className="ml-6 pl-3 border-l-2 border-violet-100/50 mb-6">
+                          <div className="space-y-1.5">
+                            {folderLists.map(list => {
+                              const isActiveList = activeListId === list.id;
+                              return (
+                                <div key={list.id} className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 ${isActiveList ? 'bg-white shadow-sm border border-violet-100/50' : 'hover:bg-white/50 text-stone-600'}`}>
+                                  <div className="flex items-center gap-2.5 flex-1 overflow-hidden" onClick={() => { setActiveListId(list.id); if (window.innerWidth < 768) setIsSidebarOpen(false); }}>
+                                    <span className="text-base flex-shrink-0 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
+                                        {list.icon || getCategoryEmoji(list.name)}
+                                    </span>
+                                    <div className={`truncate flex-1 font-medium text-sm md:text-sm ${isActiveList ? 'text-violet-800' : 'text-stone-600'}`}>
+                                      {editingId === `list-${list.id}` ? renderInlineInput(`list-${list.id}`) : list.name}
+                                    </div>
+                                  </div>
+                                  <div className="relative shrink-0 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                    <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-list-${list.id}`); }} className="p-2 md:p-1 text-stone-400 hover:text-violet-600 rounded-md hover:bg-stone-100"><MoreVertical className="h-5 w-5 md:h-4 md:w-4" /></button>
+                                    <DropdownMenu id={`menu-list-${list.id}`} options={[
+                                        { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`list-${list.id}`, list.name) },
+                                        { separator: true },
+                                        { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'list', list.id) },
+                                        { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'list', list.id) },
+                                        { separator: true },
+                                        { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteList(list.id), danger: true }
+                                      ]} />
                                   </div>
                                 </div>
-                                <div className="relative shrink-0 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                  <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-list-${list.id}`); }} className="p-2 md:p-1 text-stone-400 hover:text-violet-600 rounded-md hover:bg-stone-100"><MoreVertical className="h-5 w-5 md:h-4 md:w-4" /></button>
-                                  <DropdownMenu id={`menu-list-${list.id}`} options={[
-                                      { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`list-${list.id}`, list.name) },
-                                      { separator: true },
-                                      { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'list', list.id) },
-                                      { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'list', list.id) },
-                                      { separator: true },
-                                      { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteList(list.id), danger: true }
-                                    ]} />
-                                </div>
-                              </div>
-                            )
-                          })}
-                          <form onSubmit={(e) => addList(e, folder.id)} className="px-3 py-1 mt-2">
-                            <input type="text" placeholder="+ Neue Kategorie" value={newListNames[folder.id] || ''} onChange={(e) => setNewListNames({ ...newListNames, [folder.id]: e.target.value })} className="w-full bg-transparent text-sm border-b border-dashed border-stone-300 py-2 outline-none focus:border-violet-500 text-stone-600 placeholder:text-stone-400 transition-colors" />
-                          </form>
+                              )
+                            })}
+                          </div>
+                          
+                          <div className="px-3 mt-3 mb-2">
+                            {showListInputFor === folder.id ? (
+                              <form onSubmit={(e) => { addList(e, folder.id); setShowListInputFor(null); }} className="flex items-center gap-1.5 animate-slide-in">
+                                <input autoFocus type="text" placeholder="Listenname..." value={newListNames[folder.id] || ''} onChange={(e) => setNewListNames({ ...newListNames, [folder.id]: e.target.value })} className="flex-1 bg-white border border-violet-300 rounded-lg py-1.5 px-2.5 text-sm outline-none focus:ring-2 focus:ring-violet-500/30 text-stone-700 min-w-0" />
+                                <button type="submit" className="p-1.5 bg-violet-500 text-white rounded-lg hover:bg-violet-600 shrink-0"><Check className="h-4 w-4"/></button>
+                                <button type="button" onClick={() => setShowListInputFor(null)} className="p-1.5 bg-stone-200 text-stone-600 rounded-lg hover:bg-stone-300 shrink-0"><X className="h-4 w-4"/></button>
+                              </form>
+                            ) : (
+                              <button onClick={() => setShowListInputFor(folder.id)} className="w-full text-left text-xs font-bold text-stone-500 hover:text-violet-600 bg-stone-50 hover:bg-violet-50 py-2.5 px-3 rounded-xl border border-dashed border-stone-300 hover:border-violet-300 transition-colors flex items-center gap-2">
+                                <Plus className="h-4 w-4"/> Neue Liste erstellen
+                              </button>
+                            )}
+                          </div>
+
                         </div>
                       )}
                     </li>
@@ -760,10 +785,22 @@
                            </div>
                         </div>
 
-                        <h2 className="text-2xl md:text-3xl font-extrabold text-stone-800 flex items-center gap-2 md:gap-3 drop-shadow-sm mt-1 md:mt-2">
-                          <div className="flex-1 min-w-0" onClick={() => startEdit(`folder-header-${activeFolder.id}`, activeFolder.name)}>
-                             {editingId === `folder-header-${activeFolder.id}` ? renderInlineInput(`folder-header-${activeFolder.id}`) : <span className="truncate block cursor-pointer hover:text-violet-700 transition-colors">{activeFolder.name}</span>}
-                          </div>
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-stone-800 flex items-center flex-wrap gap-2 md:gap-3 drop-shadow-sm mt-1 md:mt-2">
+                           {editingId === `folder-header-${activeFolder.id}` ? (
+                              <div className="flex-1 min-w-0">
+                                  {renderInlineInput(`folder-header-${activeFolder.id}`)}
+                              </div>
+                           ) : (
+                              <div className="flex-1 min-w-0 flex items-center gap-2 md:gap-3 flex-wrap">
+                                  <span className="truncate max-w-full">{activeFolder.name}</span>
+                                  <button onClick={() => startEdit(`folder-header-${activeFolder.id}`, activeFolder.name)} className="p-1.5 md:p-2 text-stone-400 hover:text-violet-600 hover:bg-white rounded-xl transition-colors shadow-sm border border-transparent hover:border-stone-200" title="Reise umbenennen">
+                                     <Edit2 className="h-5 w-5" />
+                                  </button>
+                                  <span className="text-sm md:text-base font-bold text-stone-500 bg-white border border-stone-200 px-3 py-1 md:py-1.5 rounded-xl shadow-sm whitespace-nowrap flex items-center gap-1.5" title="Erledigte Einträge / Gesamteinträge im Trip">
+                                     <CheckSquare className="h-4 w-4 text-violet-500" /> {activeStats.done} / {activeStats.total}
+                                  </span>
+                              </div>
+                           )}
                         </h2>
                         
                         <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 md:gap-3 text-stone-500 text-xs md:text-sm font-medium">
@@ -811,7 +848,7 @@
                         </div>
                       </div>
 
-                      {getFolderProgress(activeFolder.id) > 0 && (
+                      {activeStats.progress > 0 && (
                         <button onClick={() => reactivateAllInFolder(activeFolder.id)} className="w-full md:w-auto text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 text-stone-500 hover:text-stone-800 bg-white/80 hover:bg-white px-4 py-2.5 md:py-2 rounded-xl transition-all shadow-sm hover:shadow-md border border-stone-200">
                            <RotateCcw className="h-4 w-4" /> Reaktivieren
                         </button>
