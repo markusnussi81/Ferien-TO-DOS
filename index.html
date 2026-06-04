@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#2563eb"> 
+  <meta name="theme-color" content="#6d28d9"> 
   <meta name="mobile-web-app-capable" content="yes">
   
   <title>CampPacker Cloud</title>
@@ -17,23 +17,22 @@
 
   <style>
     body { 
-      background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 50%, #fef08a 100%); 
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #fef08a 100%); 
       margin: 0; padding: 0; font-family: 'Inter', sans-serif; overflow: hidden; 
     }
     
-    #loading { display: flex; flex-direction: column; height: 100vh; width: 100vw; align-items: center; justify-content: center; color: #2563eb; font-weight: bold; gap: 1rem; }
-    .spinner { border: 4px solid rgba(37, 99, 235, 0.2); border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    #loading { display: flex; flex-direction: column; height: 100vh; width: 100vw; align-items: center; justify-content: center; color: #7c3aed; font-weight: bold; gap: 1rem; }
+    .spinner { border: 4px solid rgba(124, 58, 237, 0.2); border-top: 4px solid #7c3aed; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
     
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     
     @keyframes checkPop {
       0% { transform: scale(1); }
-      50% { transform: scale(1.3); color: #3b82f6; }
+      50% { transform: scale(1.3); color: #8b5cf6; }
       100% { transform: scale(1); }
     }
     .animate-check { animation: checkPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     
-    /* Reparierte Wisch-Animationen mit sanfterem Easing */
     @keyframes slideDownDone {
       0% { opacity: 0; transform: translateY(-20px) scale(0.98); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -52,7 +51,23 @@
     }
     .animate-drop-down { animation: dropDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
-    .custom-date-input::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
+    @keyframes slideIn {
+      0% { opacity: 0; transform: translateX(20px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
+
+    /* --- DER iOS KALENDER HACK (Kugelsicher) --- */
+    .date-wrapper { position: relative; display: flex; align-items: center; overflow: hidden; }
+    .date-input-native {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;
+      -webkit-appearance: none; appearance: none; background: transparent; border: none;
+    }
+    .date-input-native::-webkit-calendar-picker-indicator {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer;
+    }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -74,7 +89,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- ICON KOMPONENTEN ---
     const IconWrapper = ({ className = "h-6 w-6", children, ...props }) => (
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>{children}</svg>
     );
@@ -89,7 +103,6 @@
     const Menu = (p) => <IconWrapper {...p}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></IconWrapper>;
     const X = (p) => <IconWrapper {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconWrapper>;
     const MapIcon = (p) => <IconWrapper {...p}><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></IconWrapper>;
-    const ListTodo = (p) => <IconWrapper {...p}><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></IconWrapper>;
     const TreePine = (p) => <IconWrapper {...p}><path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z"/><path d="M12 22v-3"/></IconWrapper>;
     const Check = (p) => <IconWrapper {...p}><path d="M20 6 9 17l-5-5"/></IconWrapper>;
     const RotateCcw = (p) => <IconWrapper {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconWrapper>;
@@ -102,6 +115,7 @@
     const AlertTriangle = (p) => <IconWrapper {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></IconWrapper>;
     const Cloud = (p) => <IconWrapper {...p}><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></IconWrapper>;
     const ArrowUpDown = (p) => <IconWrapper {...p}><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></IconWrapper>;
+    const MapPin = (p) => <IconWrapper {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconWrapper>;
 
     const myFirebaseConfig = {
       apiKey: "AIzaSyBoA1ni-vhIDNlTFhibcagIOJETQD1tYh8",
@@ -114,13 +128,12 @@
 
     const app = initializeApp(myFirebaseConfig);
     const db = getFirestore(app);
-    const appId = "camppacker-app-v1-2"; // Eigene ID für globale Daten
+    const appId = "camppacker-app-v1-2"; 
 
-    // Pfad-Hilfsfunktionen für reibungslose globale Sync
+    // Globaler, offener Datenzugriff
     const getCol = (name) => collection(db, 'artifacts', appId, 'public', 'data', name);
     const getDocRef = (name, id) => doc(db, 'artifacts', appId, 'public', 'data', name, id);
 
-    // --- MENGEN-ERKENNUNG ---
     const parseItemInput = (input) => {
       const match = input.match(/^(\d+)(?:x|\s+)\s*(.*)/i);
       if (match) {
@@ -129,15 +142,33 @@
       return { quantity: 1, name: input.trim() };
     };
 
-    // --- STANDARD-UTENSILIEN LADER ---
+    const EMOJI_OPTIONS = ['📋','💊','🍳','🔌','🪥','👕','⛺','🏖️','🛌','🛂','🛠️','🐕','🚴','🚗','🎒','🧸','📷','🔦','🧴','🧻','🍺','🍷','🥪','🔥','❄️','🌧️','🚿'];
+
+    const getCategoryEmoji = (name) => {
+      if(!name) return '📋';
+      const lower = name.toLowerCase();
+      if (lower.includes('med') || lower.includes('apotheke')) return '💊';
+      if (lower.includes('küch') || lower.includes('kochen') || lower.includes('ess') || lower.includes('nahrung')) return '🍳';
+      if (lower.includes('elektronik') || lower.includes('technik') || lower.includes('kabel')) return '🔌';
+      if (lower.includes('bad') || lower.includes('hygien') || lower.includes('wasch')) return '🪥';
+      if (lower.includes('kleid') || lower.includes('anzieh') || lower.includes('wäs') || lower.includes('hose')) return '👕';
+      if (lower.includes('wohnwagen') || lower.includes('zelt') || lower.includes('camp')) return '⛺';
+      if (lower.includes('strand') || lower.includes('meer') || lower.includes('bade')) return '🏖️';
+      if (lower.includes('schlaf') || lower.includes('nacht') || lower.includes('bett')) return '🛌';
+      if (lower.includes('dok') || lower.includes('reise') || lower.includes('papier')) return '🛂';
+      if (lower.includes('werkzeug') || lower.includes('rep') || lower.includes('3d') || lower.includes('druck')) return '🛠️';
+      if (lower.includes('tier') || lower.includes('hund') || lower.includes('cosmo') || lower.includes('katze')) return '🐕';
+      return '📋';
+    };
+
     const createItems = (listId, names) => names.map((input, index) => {
       const { quantity, name } = parseItemInput(input);
       return { id: `item_${listId}_${index}`, listId, name, quantity, checkedQuantity: 0, checked: false };
     });
 
     const defaultFolders = [
-      { id: 'f_grosse', name: 'Grosse Reise', date: '' },
-      { id: 'f_kleine', name: 'kleine Reise', date: '' }
+      { id: 'f_grosse', name: 'Grosse Reise', date: '', region: '' },
+      { id: 'f_kleine', name: 'kleine Reise', date: '', region: '' }
     ];
 
     const defaultLists = [
@@ -192,22 +223,24 @@
       const [isBulkMode, setIsBulkMode] = useState(false);
       const [selectedItemIds, setSelectedItemIds] = useState([]);
       
-      // NEU: Sortierung State
       const [sortMenuOpen, setSortMenuOpen] = useState(false);
-      const [sortOption, setSortOption] = useState('alpha-asc'); // alpha-asc, alpha-desc, qty-asc, qty-desc
+      const [sortOption, setSortOption] = useState('alpha-asc');
 
       const [transferModal, setTransferModal] = useState({ isOpen: false, action: null, sourceType: null, sourceId: null });
       const [targetFolderId, setTargetFolderId] = useState('');
       const [targetListId, setTargetListId] = useState('');
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
+      const [iconModal, setIconModal] = useState({ isOpen: false, listId: null });
 
       const [newFolderName, setNewFolderName] = useState('');
       const [newListNames, setNewListNames] = useState({});
       const [newItemNames, setNewItemNames] = useState({});
 
+      const [localRegion, setLocalRegion] = useState('');
+      const [weatherCache, setWeatherCache] = useState({});
+
       const generateId = () => Math.random().toString(36).substr(2, 9);
 
-      // DATEN AUS FIRESTORE LADEN
       useEffect(() => {
         const unsubFolders = onSnapshot(getCol('folders'), 
           (snap) => {
@@ -235,14 +268,55 @@
           } else if (folderLists.length === 0) {
             setActiveListId(null);
           }
+          const currentFolder = folders.find(f => f.id === activeFolderId);
+          setLocalRegion(currentFolder?.region || '');
         }
-      }, [activeFolderId, lists]);
+      }, [activeFolderId, lists, folders]);
 
       useEffect(() => {
         const handleClickOutside = () => { setOpenMenuId(null); setSortMenuOpen(false); };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
       }, []);
+
+      useEffect(() => {
+        const fetchWeather = async () => {
+           const activeFolder = folders.find(f => f.id === activeFolderId);
+           if (!activeFolder || !activeFolder.region) return;
+           
+           const regionName = activeFolder.region.trim();
+           if (!regionName || weatherCache[regionName]) return; 
+
+           setWeatherCache(prev => ({ ...prev, [regionName]: 'loading' }));
+
+           try {
+             const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(regionName)}&count=1&language=de`);
+             const geoData = await geoRes.json();
+             if (!geoData.results || geoData.results.length === 0) {
+                 setWeatherCache(prev => ({ ...prev, [regionName]: 'error' })); return;
+             }
+             const { latitude, longitude } = geoData.results[0];
+             const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+             const weatherData = await weatherRes.json();
+
+             const temp = Math.round(weatherData.current_weather.temperature);
+             const code = weatherData.current_weather.weathercode;
+             let emoji = '🌤️';
+             if (code === 0) emoji = '☀️';
+             else if (code >= 1 && code <= 3) emoji = '⛅';
+             else if (code === 45 || code === 48) emoji = '🌫️';
+             else if (code >= 51 && code <= 67) emoji = '🌧️';
+             else if (code >= 71 && code <= 77) emoji = '❄️';
+             else if (code >= 80 && code <= 82) emoji = '🌦️';
+             else if (code >= 95 && code <= 99) emoji = '⛈️';
+
+             setWeatherCache(prev => ({ ...prev, [regionName]: { temp, emoji } }));
+           } catch (e) {
+             setWeatherCache(prev => ({ ...prev, [regionName]: 'error' }));
+           }
+        };
+        fetchWeather();
+      }, [activeFolderId, folders, weatherCache]);
 
       const getDaysLeft = (dateStr) => {
         if (!dateStr) return null;
@@ -262,32 +336,27 @@
       const openConfirm = (message, onConfirm) => setConfirmDialog({ isOpen: true, message, onConfirm });
       const closeConfirm = () => setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
 
-      // --- STANDARDDATEN IN DIE CLOUD LADEN ---
       const loadDefaultsToCloud = async () => {
         openConfirm('Möchtest du alle Basis-Listen in deine Cloud pushen? (Bestehende Daten werden ergänzt)', async () => {
           setIsUploading(true);
           try {
-            for (let f of defaultFolders) await setDoc(getDocRef('folders', f.id), { name: f.name, date: f.date }, { merge: true });
+            for (let f of defaultFolders) await setDoc(getDocRef('folders', f.id), { name: f.name, date: f.date, region: f.region || '' }, { merge: true });
             for (let l of defaultLists) await setDoc(getDocRef('lists', l.id), { folderId: l.folderId, name: l.name }, { merge: true });
             for (let i of defaultItems) await setDoc(getDocRef('items', i.id), { listId: i.listId, name: i.name, quantity: i.quantity, checkedQuantity: i.checkedQuantity, checked: i.checked }, { merge: true });
             alert("Standard-Listen erfolgreich geladen!");
           } catch (err) {
-            console.error("Fehler beim Hochladen:", err);
-            alert("Fehler beim Speichern in der Cloud.");
+            console.error("Fehler beim Hochladen:", err); alert("Fehler beim Speichern.");
           }
           setIsUploading(false);
         });
       };
 
-      // --- FIRESTORE SCHREIBOPERATIONEN ---
       const addFolder = async (e) => {
         e.preventDefault();
         if (!newFolderName.trim()) return;
         const newId = generateId();
-        await setDoc(getDocRef('folders', newId), { name: newFolderName.trim(), date: '' });
-        setNewFolderName('');
-        setActiveFolderId(newId);
-        setActiveListId(null);
+        await setDoc(getDocRef('folders', newId), { name: newFolderName.trim(), date: '', region: '' });
+        setNewFolderName(''); setActiveFolderId(newId); setActiveListId(null);
       };
 
       const deleteFolder = (folderId) => {
@@ -297,9 +366,7 @@
           for (let l of listsToDelete) {
             await deleteDoc(getDocRef('lists', l.id));
             const itemsToDelete = items.filter(i => i.listId === l.id);
-            for (let i of itemsToDelete) {
-              await deleteDoc(getDocRef('items', i.id));
-            }
+            for (let i of itemsToDelete) await deleteDoc(getDocRef('items', i.id));
           }
         });
       };
@@ -310,17 +377,14 @@
         if (!name?.trim()) return;
         const newId = generateId();
         await setDoc(getDocRef('lists', newId), { folderId, name: name.trim() });
-        setNewListNames({ ...newListNames, [folderId]: '' });
-        setActiveListId(newId);
+        setNewListNames({ ...newListNames, [folderId]: '' }); setActiveListId(newId);
       };
 
       const deleteList = (listId) => {
         openConfirm('Kategorie wirklich löschen?', async () => {
           await deleteDoc(getDocRef('lists', listId));
           const itemsToDelete = items.filter(i => i.listId === listId);
-          for (let item of itemsToDelete) {
-            await deleteDoc(getDocRef('items', item.id));
-          }
+          for (let item of itemsToDelete) await deleteDoc(getDocRef('items', item.id));
         });
       };
 
@@ -334,8 +398,19 @@
         setNewItemNames({ ...newItemNames, [listId]: '' });
       };
 
-      const deleteItem = async (itemId) => {
-        await deleteDoc(getDocRef('items', itemId));
+      const deleteItem = async (itemId) => await deleteDoc(getDocRef('items', itemId));
+
+      const updateItemQuantity = async (itemId, delta) => {
+        const targetItem = items.find(i => i.id === itemId);
+        if(!targetItem) return;
+        const currentQty = targetItem.quantity || 1;
+        const newQty = Math.max(1, currentQty + delta);
+        
+        let newCheckedQty = targetItem.checkedQuantity !== undefined ? targetItem.checkedQuantity : (targetItem.checked ? currentQty : 0);
+        if (newCheckedQty > newQty) newCheckedQty = newQty;
+        const newChecked = newQty > 0 && newCheckedQty === newQty;
+        
+        await setDoc(getDocRef('items', itemId), { quantity: newQty, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
       };
 
       const toggleItem = async (itemId, action = 'toggle') => {
@@ -366,16 +441,11 @@
           newChecked = (currentQty === maxQty);
         }
 
-        await setDoc(getDocRef('items', itemId), { 
-          checked: newChecked,
-          checkedQuantity: currentQty
-        }, { merge: true });
+        await setDoc(getDocRef('items', itemId), { checked: newChecked, checkedQuantity: currentQty }, { merge: true });
       };
 
       const startEdit = (id, initialValue) => {
-        setEditingId(id);
-        setEditValue(initialValue);
-        setOpenMenuId(null);
+        setEditingId(id); setEditValue(initialValue); setOpenMenuId(null);
       };
 
       const saveEdit = async () => {
@@ -392,10 +462,7 @@
                let newCheckedQty = targetItem.checkedQuantity || 0;
                if (newCheckedQty > parsed.quantity) newCheckedQty = parsed.quantity;
                let newChecked = newCheckedQty === parsed.quantity;
-               
-               await setDoc(getDocRef('items', id), { 
-                 name: parsed.name, quantity: parsed.quantity, checkedQuantity: newCheckedQty, checked: newChecked
-               }, { merge: true });
+               await setDoc(getDocRef('items', id), { name: parsed.name, quantity: parsed.quantity, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
             }
           }
         }
@@ -403,7 +470,7 @@
       };
 
       const handleEditKeyDown = (e) => {
-        if (e.key === 'Enter') saveEdit();
+        if (e.key === 'Enter') e.target.blur(); 
         if (e.key === 'Escape') setEditingId(null);
       };
 
@@ -411,12 +478,24 @@
         await setDoc(getDocRef('folders', folderId), { date: newDate }, { merge: true });
       };
 
+      const handleRegionBlur = async (folderId) => {
+        const currentFolder = folders.find(f => f.id === folderId);
+        if (currentFolder && localRegion !== (currentFolder.region || '')) {
+           await setDoc(getDocRef('folders', folderId), { region: localRegion.trim() }, { merge: true });
+        }
+      };
+
+      const selectEmoji = async (emoji) => {
+         if (iconModal.listId) {
+             await setDoc(getDocRef('lists', iconModal.listId), { icon: emoji }, { merge: true });
+         }
+         setIconModal({ isOpen: false, listId: null });
+      };
+
       const reactivateAllInFolder = async (folderId) => {
         const folderListIds = lists.filter(l => l.folderId === folderId).map(l => l.id);
         const itemsToReactivate = items.filter(i => folderListIds.includes(i.listId) && i.checked);
-        for (let item of itemsToReactivate) {
-          await setDoc(getDocRef('items', item.id), { checked: false, checkedQuantity: 0 }, { merge: true });
-        }
+        for (let item of itemsToReactivate) await setDoc(getDocRef('items', item.id), { checked: false, checkedQuantity: 0 }, { merge: true });
       };
 
       const executeTransfer = async () => {
@@ -429,37 +508,27 @@
             const newListId = generateId();
             await setDoc(getDocRef('lists', newListId), { ...listToProcess, id: undefined, folderId: targetFolderId });
             const itemsToCopy = items.filter(i => i.listId === sourceId);
-            for (let item of itemsToCopy) {
-              await setDoc(getDocRef('items', generateId()), { ...item, id: undefined, listId: newListId, checked: false, checkedQuantity: 0 }, { merge: true });
-            }
+            for (let item of itemsToCopy) await setDoc(getDocRef('items', generateId()), { ...item, id: undefined, listId: newListId, checked: false, checkedQuantity: 0 }, { merge: true });
           }
         } 
         else if (sourceType === 'item' || sourceType === 'bulk-items') {
           const idsToProcess = Array.isArray(sourceId) ? sourceId : [sourceId];
           if (!targetListId) return;
           if (action === 'move') {
-            for (let id of idsToProcess) {
-              await setDoc(getDocRef('items', id), { listId: targetListId }, { merge: true });
-            }
+            for (let id of idsToProcess) await setDoc(getDocRef('items', id), { listId: targetListId }, { merge: true });
           } else if (action === 'copy') {
             const itemsToCopy = items.filter(i => idsToProcess.includes(i.id));
-            for (let item of itemsToCopy) {
-              await setDoc(getDocRef('items', generateId()), { ...item, id: undefined, listId: targetListId, checked: false, checkedQuantity: 0 }, { merge: true });
-            }
+            for (let item of itemsToCopy) await setDoc(getDocRef('items', generateId()), { ...item, id: undefined, listId: targetListId, checked: false, checkedQuantity: 0 }, { merge: true });
           }
         }
         setTransferModal({ isOpen: false, action: null, sourceType: null, sourceId: null });
-        setIsBulkMode(false);
-        setSelectedItemIds([]);
+        setIsBulkMode(false); setSelectedItemIds([]);
       };
 
       const executeBulkDelete = () => {
         openConfirm(`${selectedItemIds.length} Utensilien wirklich löschen?`, async () => {
-          for (let id of selectedItemIds) {
-            await deleteDoc(getDocRef('items', id));
-          }
-          setIsBulkMode(false);
-          setSelectedItemIds([]);
+          for (let id of selectedItemIds) await deleteDoc(getDocRef('items', id));
+          setIsBulkMode(false); setSelectedItemIds([]);
         });
       };
       
@@ -468,16 +537,13 @@
         if (sourceType === 'item' || sourceType === 'bulk-items') {
            const availableLists = lists.filter(l => l.folderId === activeFolderId);
            setTargetListId(availableLists.length > 0 ? availableLists[0].id : '');
-        } else {
-           setTargetListId('');
-        }
-        setTransferModal({ isOpen: true, action, sourceType, sourceId });
-        setOpenMenuId(null);
+        } else setTargetListId('');
+        setTransferModal({ isOpen: true, action, sourceType, sourceId }); setOpenMenuId(null);
       };
 
       const renderInlineInput = (id, containerClasses = "flex-1") => (
         <div className={`flex items-center gap-2 ${containerClasses}`}>
-          <input autoFocus type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={saveEdit} onClick={(e) => e.stopPropagation()} className="bg-white border-2 border-blue-400 rounded-lg px-2 py-1 text-sm text-stone-800 outline-none w-full shadow-inner font-normal" />
+          <input autoFocus type="text" value={editValue} onChange={(e) => setEditValue(e.target.value)} onKeyDown={handleEditKeyDown} onBlur={saveEdit} onClick={(e) => e.stopPropagation()} className="bg-white border-2 border-violet-400 rounded-lg px-2 py-1 text-sm text-stone-800 outline-none w-full shadow-inner font-normal" />
         </div>
       );
 
@@ -488,7 +554,7 @@
             {options.map((opt, idx) => opt.separator ? (
                 <div key={`sep-${idx}`} className="h-px bg-stone-100 my-1 w-full" />
               ) : (
-                <button key={opt.label} onClick={(e) => { e.stopPropagation(); opt.action(); setOpenMenuId(null); }} className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 transition-colors ${opt.danger ? 'text-red-600 hover:bg-red-50' : 'text-stone-700 hover:bg-stone-50'}`}>
+                <button key={opt.label} onClick={(e) => { e.stopPropagation(); opt.action(); setOpenMenuId(null); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm flex items-center gap-2 transition-colors ${opt.danger ? 'text-red-600 hover:bg-red-50' : 'text-stone-700 hover:bg-stone-50'}`}>
                   {opt.icon} {opt.label}
                 </button>
             ))}
@@ -496,10 +562,9 @@
         );
       };
 
-      // Farben für Stückzahlen berechnen
       const getProgressColor = (current, max, isChecked) => {
          if (isChecked) return 'bg-stone-50/80 hover:bg-white border-transparent hover:border-stone-200';
-         if (max <= 1 || current === 0) return 'bg-white hover:bg-blue-50/80 border-stone-100 hover:border-blue-200';
+         if (max <= 1 || current === 0) return 'bg-white hover:bg-violet-50/80 border-stone-100 hover:border-violet-200';
          const ratio = current / max;
          if (ratio <= 0.25) return 'bg-amber-50 hover:bg-amber-100 border-amber-200 shadow-sm';
          if (ratio <= 0.50) return 'bg-orange-50 hover:bg-orange-100 border-orange-200 shadow-sm';
@@ -514,7 +579,6 @@
       const activeList = activeLists.find(l => l.id === activeListId) || activeLists[0];
       const currentListItems = items.filter(i => i.listId === activeList?.id);
       
-      // Sortierungs-Logik anwenden
       let sortedCurrentItems = [...currentListItems];
       sortedCurrentItems.sort((a, b) => {
          if (sortOption === 'alpha-asc') return a.name.localeCompare(b.name);
@@ -535,16 +599,20 @@
         return Math.round((folderItems.filter(i => i.checked).length / folderItems.length) * 100);
       };
 
+      const handleSelectAll = () => {
+         if (selectedItemIds.length === currentListItems.length) setSelectedItemIds([]); 
+         else setSelectedItemIds(currentListItems.map(i => i.id)); 
+      };
+
       return (
         <div className="h-screen w-full font-sans text-stone-800 flex flex-col md:flex-row overflow-hidden relative">
           
-          {/* Mobile Header */}
-          <div className="md:hidden bg-gradient-to-r from-blue-700 to-indigo-600 text-white p-4 flex justify-between items-center shadow-lg z-20">
-            <div className="flex items-center gap-2 font-bold text-xl flex-1 cursor-pointer">
-              <Tent className="h-6 w-6 text-blue-200 shrink-0" />
+          <div className="md:hidden bg-gradient-to-r from-violet-700 to-fuchsia-600 text-white p-3 md:p-4 flex justify-between items-center shadow-lg z-20 shrink-0">
+            <div className="flex items-center gap-2 font-bold text-lg md:text-xl flex-1 cursor-pointer">
+              <Tent className="h-6 w-6 text-violet-200 shrink-0" />
               <div className="flex items-center min-w-0">
                 <span className="truncate">{appTitle}</span>
-                <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.2.0</span>
+                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.4.2</span>
               </div>
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/20 rounded transition-colors shrink-0">
@@ -552,27 +620,25 @@
             </button>
           </div>
 
-          {/* Sidebar */}
           <aside className={`
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
             md:translate-x-0 transition-transform duration-300 ease-in-out
             fixed md:static top-0 left-0 h-full w-[85%] md:w-80 
-            bg-white/90 backdrop-blur-md border-r border-stone-200 shadow-2xl md:shadow-none z-30 flex flex-col
+            bg-white/95 backdrop-blur-md border-r border-stone-200 shadow-2xl md:shadow-none z-30 flex flex-col
           `}>
-            {/* Desktop Header */}
-            <div className="p-6 bg-gradient-to-br from-blue-700 to-indigo-700 text-white hidden md:flex items-center gap-3 shrink-0 shadow-inner">
-              <TreePine className="h-8 w-8 text-blue-200 flex-shrink-0 drop-shadow-md" />
+            <div className="p-6 bg-gradient-to-br from-violet-800 to-fuchsia-700 text-white hidden md:flex items-center gap-3 shrink-0 shadow-inner">
+              <TreePine className="h-8 w-8 text-violet-200 flex-shrink-0 drop-shadow-md" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.2.0</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.4.2</span>
                 </div>
-                <p className="text-indigo-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
+                <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 pb-24">
-              <h2 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-4 px-2">Geplante Reisen</h2>
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 pb-24">
+              <h2 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 md:mb-4 px-2">Geplante Reisen</h2>
               <ul className="space-y-3">
                 {folders.map(folder => {
                   const progress = getFolderProgress(folder.id);
@@ -581,15 +647,15 @@
 
                   return (
                     <li key={folder.id}>
-                      <div className={`w-full text-left rounded-2xl flex items-center justify-between transition-all duration-300 ${isActiveFolder ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 shadow-sm' : 'hover:bg-stone-50 border border-transparent'}`}>
+                      <div className={`w-full text-left rounded-2xl flex items-center justify-between transition-all duration-300 ${isActiveFolder ? 'bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-100 shadow-sm' : 'hover:bg-stone-50 border border-transparent'}`}>
                         <div onClick={() => { setActiveFolderId(folder.id); if (window.innerWidth < 768 && folderLists.length === 0) setIsSidebarOpen(false); }} className="flex-1 text-left px-4 py-3 flex items-center gap-3 overflow-hidden cursor-pointer">
-                          <MapIcon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActiveFolder ? 'text-blue-600' : 'text-stone-400'}`} />
-                          <div className={`truncate font-bold flex-1 ${isActiveFolder ? 'text-blue-900' : 'text-stone-600'}`}>
+                          <MapIcon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActiveFolder ? 'text-violet-600' : 'text-stone-400'}`} />
+                          <div className={`truncate font-bold flex-1 ${isActiveFolder ? 'text-violet-900' : 'text-stone-600'}`}>
                             {editingId === `folder-${folder.id}` ? renderInlineInput(`folder-${folder.id}`) : folder.name}
                           </div>
                         </div>
                         <div className="relative pr-2 shrink-0">
-                          <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-folder-${folder.id}`); }} className="p-1.5 text-stone-400 hover:text-blue-600 rounded-lg hover:bg-white/50 transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-folder-${folder.id}`); }} className="p-2 md:p-1.5 text-stone-400 hover:text-violet-600 rounded-lg hover:bg-white/50 transition-colors"><MoreVertical className="h-5 w-5" /></button>
                           <DropdownMenu id={`menu-folder-${folder.id}`} options={[
                               { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`folder-${folder.id}`, folder.name) },
                               { separator: true },
@@ -600,26 +666,26 @@
                       
                       <div className="px-5 mt-1.5 mb-3">
                          <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden shadow-inner">
-                           <div className={`h-full transition-all duration-700 ease-out ${progress === 100 ? 'bg-gradient-to-r from-blue-400 to-indigo-400' : 'bg-gradient-to-r from-amber-300 to-orange-400'}`} style={{ width: `${progress}%` }} />
+                           <div className={`h-full transition-all duration-700 ease-out ${progress === 100 ? 'bg-gradient-to-r from-violet-400 to-fuchsia-400' : 'bg-gradient-to-r from-amber-300 to-orange-400'}`} style={{ width: `${progress}%` }} />
                          </div>
                       </div>
 
                       {isActiveFolder && (
-                        <div className="ml-6 pl-3 border-l-2 border-blue-100/50 space-y-1.5 mb-6">
+                        <div className="ml-6 pl-3 border-l-2 border-violet-100/50 space-y-1.5 mb-6">
                           {folderLists.map(list => {
                             const isActiveList = activeListId === list.id;
                             return (
-                              <div key={list.id} className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 ${isActiveList ? 'bg-white shadow-sm border border-blue-100/50' : 'hover:bg-white/50 text-stone-600'}`}>
+                              <div key={list.id} className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 ${isActiveList ? 'bg-white shadow-sm border border-violet-100/50' : 'hover:bg-white/50 text-stone-600'}`}>
                                 <div className="flex items-center gap-2.5 flex-1 overflow-hidden" onClick={() => { setActiveListId(list.id); if (window.innerWidth < 768) setIsSidebarOpen(false); }}>
-                                  <div className={`p-1.5 rounded-lg transition-colors ${isActiveList ? 'bg-blue-100 text-blue-600' : 'bg-stone-100 text-stone-400 group-hover:bg-stone-200'}`}>
-                                    <ListTodo className="h-3.5 w-3.5 flex-shrink-0" />
-                                  </div>
-                                  <div className={`truncate flex-1 font-medium text-sm ${isActiveList ? 'text-blue-800' : 'text-stone-600'}`}>
+                                  <span className="text-base flex-shrink-0 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
+                                      {list.icon || getCategoryEmoji(list.name)}
+                                  </span>
+                                  <div className={`truncate flex-1 font-medium text-sm md:text-sm ${isActiveList ? 'text-violet-800' : 'text-stone-600'}`}>
                                     {editingId === `list-${list.id}` ? renderInlineInput(`list-${list.id}`) : list.name}
                                   </div>
                                 </div>
-                                <div className="relative shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                  <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-list-${list.id}`); }} className="p-1 text-stone-400 hover:text-blue-600 rounded-md hover:bg-stone-100"><MoreVertical className="h-4 w-4" /></button>
+                                <div className="relative shrink-0 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                  <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-list-${list.id}`); }} className="p-2 md:p-1 text-stone-400 hover:text-violet-600 rounded-md hover:bg-stone-100"><MoreVertical className="h-5 w-5 md:h-4 md:w-4" /></button>
                                   <DropdownMenu id={`menu-list-${list.id}`} options={[
                                       { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`list-${list.id}`, list.name) },
                                       { separator: true },
@@ -633,7 +699,7 @@
                             )
                           })}
                           <form onSubmit={(e) => addList(e, folder.id)} className="px-3 py-1 mt-2">
-                            <input type="text" placeholder="+ Neue Kategorie" value={newListNames[folder.id] || ''} onChange={(e) => setNewListNames({ ...newListNames, [folder.id]: e.target.value })} className="w-full bg-transparent text-sm border-b border-dashed border-stone-300 py-1 outline-none focus:border-blue-500 text-stone-600 placeholder:text-stone-400 transition-colors" />
+                            <input type="text" placeholder="+ Neue Kategorie" value={newListNames[folder.id] || ''} onChange={(e) => setNewListNames({ ...newListNames, [folder.id]: e.target.value })} className="w-full bg-transparent text-sm border-b border-dashed border-stone-300 py-2 outline-none focus:border-violet-500 text-stone-600 placeholder:text-stone-400 transition-colors" />
                           </form>
                         </div>
                       )}
@@ -644,63 +710,109 @@
 
               {folders.length === 0 && <div className="text-center p-6 text-stone-400 text-sm">Noch keine Trips in deiner Cloud.</div>}
               
-              <button onClick={loadDefaultsToCloud} className="w-full text-[10px] font-bold uppercase text-stone-400 hover:text-blue-600 mt-8 flex items-center justify-center gap-1.5 transition-colors">
-                 <RotateCcw className="h-3.5 w-3.5" /> Standard-Listen laden
+              <button onClick={loadDefaultsToCloud} disabled={isUploading} className="w-full text-[10px] font-bold uppercase text-stone-400 hover:text-violet-600 mt-8 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50">
+                 <RotateCcw className={`h-3.5 w-3.5 ${isUploading ? 'animate-spin' : ''}`} /> Standard-Listen laden
               </button>
             </div>
 
-            <div className="p-4 bg-white/80 backdrop-blur-md border-t border-stone-100 shrink-0">
+            <div className="p-4 bg-white/90 backdrop-blur-md border-t border-stone-100 shrink-0 pb-8 md:pb-4">
               <form onSubmit={addFolder}>
                 <div className="relative group">
-                  <input type="text" placeholder="Neuen Trip anlegen..." value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-4 pr-10 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500/50 outline-none transition-all placeholder:text-stone-400 shadow-sm" />
-                  <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-600 hover:text-white hover:bg-blue-500 p-1.5 bg-white rounded-lg shadow-sm transition-all"><Plus className="h-4 w-4" /></button>
+                  <input type="text" placeholder="Neuen Trip anlegen..." value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-4 pr-10 text-sm focus:bg-white focus:ring-2 focus:ring-violet-500/50 outline-none transition-all placeholder:text-stone-400 shadow-sm" />
+                  <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-violet-600 hover:text-white hover:bg-violet-500 p-2 md:p-1.5 bg-white rounded-lg shadow-sm transition-all"><Plus className="h-5 w-5 md:h-4 md:w-4" /></button>
                 </div>
               </form>
             </div>
           </aside>
 
-          {}
           <main className="flex-1 flex flex-col h-full overflow-hidden relative">
             {folders.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500 bg-white/50 m-4 rounded-3xl shadow-xl border border-white/60 backdrop-blur-sm">
-                <Tent className="h-24 w-24 text-indigo-200 mb-6 drop-shadow-md" />
+                <Tent className="h-24 w-24 text-fuchsia-200 mb-6 drop-shadow-md" />
                 <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim CampPacker</h2>
                 <p className="max-w-md mx-auto text-sm mb-8">Deine Cloud-Datenbank ist aktuell noch leer.</p>
-                
-                <button onClick={loadDefaultsToCloud} disabled={isUploading} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-3 transition-all disabled:opacity-50">
-                  {isUploading ? <RotateCcw className="h-5 w-5 animate-spin" /> : <Cloud className="h-5 w-5" />}
-                  {isUploading ? 'Wird geladen...' : 'Meine Standard-Listen laden'}
+                <button onClick={loadDefaultsToCloud} disabled={isUploading} className="bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-3 transition-all disabled:opacity-50">
+                  {isUploading ? <RotateCcw className="h-5 w-5 animate-spin" /> : <Cloud className="h-5 w-5" />} {isUploading ? 'Wird geladen...' : 'Meine Standard-Listen laden'}
                 </button>
               </div>
             ) : activeFolder ? (
               <>
-                {/* W-FULL für bildschirmfüllende Ansicht */}
-                <header className="pt-3 pb-3 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/60 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8">
+                {}
+                <header className="pt-4 pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/60 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8">
                   <div className="w-full max-w-full mx-auto">
-                    <div className="flex flex-wrap items-start justify-between gap-2 md:gap-4">
-                      <div className="flex-1 min-w-[60%]">
-                        <span className="text-blue-600 font-bold text-[10px] md:text-xs tracking-widest uppercase mb-0.5 md:mb-1 flex items-center gap-1.5 md:gap-2 drop-shadow-sm">
-                          Aktueller Trip
-                          {getDaysLeft(activeFolder.date) && (
-                             <span className="bg-blue-100/80 text-blue-800 px-2 md:px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] flex items-center gap-1 shadow-sm"><Clock className="h-3 w-3"/> {getDaysLeft(activeFolder.date)}</span>
-                          )}
-                        </span>
-                        <h2 className="text-xl md:text-3xl font-extrabold text-stone-800 flex items-center gap-2 md:gap-3 drop-shadow-sm">
+                    <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
+                      
+                      <div className="flex-1 min-w-[60%] w-full">
+                        <div className="flex flex-wrap items-center justify-between md:justify-start gap-2">
+                           <span className="text-violet-600 font-bold text-[10px] md:text-xs tracking-widest uppercase flex items-center gap-1.5 md:gap-2 drop-shadow-sm">
+                             Aktueller Trip
+                             {getDaysLeft(activeFolder.date) && (
+                                <span className="bg-violet-100/80 text-violet-800 px-2 md:px-2.5 py-0.5 rounded-full text-[9px] md:text-[10px] flex items-center gap-1 shadow-sm"><Clock className="h-3 w-3"/> {getDaysLeft(activeFolder.date)}</span>
+                             )}
+                           </span>
+                           <div className="md:hidden">
+                              {weatherCache[activeFolder.region] && typeof weatherCache[activeFolder.region] === 'object' && (
+                                 <div className="flex items-center gap-1.5 bg-gradient-to-r from-violet-50 to-fuchsia-50 text-violet-700 px-2 py-0.5 rounded-lg shadow-sm border border-violet-100">
+                                    <span className="text-sm">{weatherCache[activeFolder.region].emoji}</span>
+                                    <span className="font-extrabold text-xs">{weatherCache[activeFolder.region].temp}°</span>
+                                 </div>
+                              )}
+                           </div>
+                        </div>
+
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-stone-800 flex items-center gap-2 md:gap-3 drop-shadow-sm mt-1 md:mt-2">
                           <div className="flex-1 min-w-0" onClick={() => startEdit(`folder-header-${activeFolder.id}`, activeFolder.name)}>
-                             {editingId === `folder-header-${activeFolder.id}` ? renderInlineInput(`folder-header-${activeFolder.id}`) : <span className="truncate block cursor-pointer hover:text-blue-700 transition-colors">{activeFolder.name}</span>}
+                             {editingId === `folder-header-${activeFolder.id}` ? renderInlineInput(`folder-header-${activeFolder.id}`) : <span className="truncate block cursor-pointer hover:text-violet-700 transition-colors">{activeFolder.name}</span>}
                           </div>
                         </h2>
                         
-                        <div className="mt-1 md:mt-2 flex items-center gap-1.5 md:gap-2 text-stone-500 text-xs md:text-sm font-medium">
-                           <CalendarDays className="h-4 w-4 text-blue-500" />
-                           <input type="date" value={activeFolder.date || ''} onChange={(e) => handleDateChange(activeFolder.id, e.target.value)} onClick={(e) => e.target.showPicker && e.target.showPicker()} className="bg-transparent border-none outline-none text-stone-500 hover:text-blue-600 cursor-pointer p-0 m-0 transition-colors custom-date-input w-[110px]" />
-                           {activeFolder.date && (
-                             <button onClick={() => handleDateChange(activeFolder.id, '')} className="p-1 hover:bg-stone-200 rounded-lg text-stone-400 hover:text-red-500 transition-colors ml-1" title="Datum löschen"><Trash2 className="h-4 w-4" /></button>
-                           )}
+                        <div className="mt-2 md:mt-3 flex flex-wrap items-center gap-2 md:gap-3 text-stone-500 text-xs md:text-sm font-medium">
+                           {/* Reliable Native Date Picker Container */}
+                           <div className="date-wrapper gap-1.5 md:gap-2 bg-white/60 pl-2.5 pr-2 py-1.5 rounded-xl border border-stone-200/60 hover:border-violet-300 transition-colors shadow-sm group">
+                              <CalendarDays className="h-4 w-4 text-violet-500 relative z-0 pointer-events-none" />
+                              <span className="text-stone-500 font-medium whitespace-nowrap relative z-0 pointer-events-none group-hover:text-violet-700 transition-colors">
+                                 {activeFolder.date ? new Date(activeFolder.date).toLocaleDateString('de-DE') : 'Datum wählen'}
+                              </span>
+                              <input 
+                                 type="date" 
+                                 value={activeFolder.date || ''} 
+                                 onChange={(e) => handleDateChange(activeFolder.id, e.target.value)} 
+                                 className="date-input-native"
+                              />
+                              {activeFolder.date && (
+                                <button type="button" onClick={(e) => { e.preventDefault(); handleDateChange(activeFolder.id, ''); }} className="relative z-20 p-1 hover:bg-stone-200 rounded-lg text-stone-400 hover:text-red-500 transition-colors ml-1" title="Datum löschen"><Trash2 className="h-3.5 w-3.5" /></button>
+                              )}
+                           </div>
+                           
+                           <div className="flex items-center gap-1.5 md:gap-2 bg-white/60 px-2.5 py-1.5 rounded-xl border border-stone-200/60 hover:border-violet-300 transition-colors shadow-sm">
+                              <MapPin className="h-4 w-4 text-violet-500" />
+                              <input 
+                                 type="text" 
+                                 placeholder="Ort / Region" 
+                                 value={localRegion} 
+                                 onChange={(e) => setLocalRegion(e.target.value)} 
+                                 onBlur={() => handleRegionBlur(activeFolder.id)}
+                                 onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                                 className="bg-transparent border-none outline-none text-stone-600 hover:text-violet-700 placeholder:text-stone-400 transition-colors w-[120px] md:w-[150px]" 
+                              />
+                           </div>
+
+                           <div className="hidden md:flex">
+                              {weatherCache[activeFolder.region] && typeof weatherCache[activeFolder.region] === 'object' && (
+                                 <div className="flex items-center gap-2 bg-gradient-to-r from-violet-50 to-fuchsia-50 text-violet-700 px-3 py-1.5 rounded-xl shadow-sm border border-violet-100 animate-slide-in">
+                                    <span className="text-lg drop-shadow-sm">{weatherCache[activeFolder.region].emoji}</span>
+                                    <span className="font-extrabold text-sm">{weatherCache[activeFolder.region].temp}°C</span>
+                                 </div>
+                              )}
+                              {weatherCache[activeFolder.region] === 'error' && (
+                                 <div className="text-[10px] text-stone-400 italic">Wetter n/a</div>
+                              )}
+                           </div>
                         </div>
                       </div>
+
                       {getFolderProgress(activeFolder.id) > 0 && (
-                        <button onClick={() => reactivateAllInFolder(activeFolder.id)} className="text-xs font-bold uppercase tracking-wide flex items-center gap-2 text-stone-500 hover:text-stone-800 bg-white/80 hover:bg-white px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md border border-stone-200">
+                        <button onClick={() => reactivateAllInFolder(activeFolder.id)} className="w-full md:w-auto text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 text-stone-500 hover:text-stone-800 bg-white/80 hover:bg-white px-4 py-2.5 md:py-2 rounded-xl transition-all shadow-sm hover:shadow-md border border-stone-200">
                            <RotateCcw className="h-4 w-4" /> Reaktivieren
                         </button>
                       )}
@@ -708,41 +820,51 @@
                   </div>
                 </header>
 
+                {}
                 <div className="flex-1 overflow-y-auto p-2 md:p-8 relative">
                   <div className="w-full max-w-full mx-auto relative">
                     {activeList ? (
-                      <div className="bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-24 relative">
-                        <div className="absolute inset-0 overflow-hidden rounded-2xl md:rounded-3xl pointer-events-none">
-                            <div className="absolute -top-20 -right-20 w-64 h-64 bg-gradient-to-br from-blue-100/40 to-indigo-100/40 rounded-full blur-3xl pointer-events-none"></div>
+                      <div className="bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-24 relative overflow-hidden">
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-violet-100/50 to-fuchsia-100/50 rounded-full blur-3xl"></div>
                         </div>
 
                         <div className="relative z-10">
-                            <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-4 md:mb-8 relative">
-                              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 md:p-3 rounded-xl md:rounded-2xl text-white shadow-lg shadow-blue-200 transform -rotate-3"><ListTodo className="h-5 w-5 md:h-7 md:w-7" /></div>
-                              <h3 className="text-lg md:text-2xl font-bold text-stone-800 flex-1 cursor-pointer hover:text-blue-700 transition-colors drop-shadow-sm min-w-[150px]" onClick={() => startEdit(`list-header-${activeList.id}`, activeList.name)}>
+                            <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-4 md:mb-8">
+                              <div className="bg-violet-100/80 p-2 md:p-3 rounded-xl md:rounded-2xl shadow-sm text-2xl md:text-3xl flex items-center justify-center transform -rotate-3 cursor-pointer hover:bg-violet-200 transition-colors" onClick={() => setIconModal({ isOpen: true, listId: activeList.id })} title="Icon ändern">
+                                {activeList.icon || getCategoryEmoji(activeList.name)}
+                              </div>
+                              <h3 className="text-xl md:text-3xl font-extrabold text-stone-800 flex-1 cursor-pointer hover:text-violet-700 transition-colors drop-shadow-sm min-w-[150px]" onClick={() => startEdit(`list-header-${activeList.id}`, activeList.name)}>
                                  {editingId === `list-header-${activeList.id}` ? renderInlineInput(`list-header-${activeList.id}`) : activeList.name}
                               </h3>
                               
                               {(openItems.length > 0 || doneItems.length > 0) && (
-                                <div className="flex items-center gap-1.5 md:gap-2">
-                                  {/* NEU: Sortierungs-Menü */}
-                                  <div className="relative">
-                                    <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(!sortMenuOpen); setOpenMenuId(null); }} className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl font-medium flex items-center gap-1.5 md:gap-2 transition-all shadow-sm bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-md border border-stone-200">
-                                      <ArrowUpDown className="h-3 w-3 md:h-4 md:w-4"/> Sortieren
-                                    </button>
-                                    {sortMenuOpen && (
-                                      <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-stone-200 py-1 z-50">
-                                        <button onClick={() => { setSortOption('alpha-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortOption === 'alpha-asc' ? 'text-blue-600 font-bold bg-blue-50' : 'text-stone-700 hover:bg-stone-50'}`}>A-Z (Name)</button>
-                                        <button onClick={() => { setSortOption('alpha-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortOption === 'alpha-desc' ? 'text-blue-600 font-bold bg-blue-50' : 'text-stone-700 hover:bg-stone-50'}`}>Z-A (Name)</button>
-                                        <div className="h-px bg-stone-100 my-1 w-full" />
-                                        <button onClick={() => { setSortOption('qty-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortOption === 'qty-asc' ? 'text-blue-600 font-bold bg-blue-50' : 'text-stone-700 hover:bg-stone-50'}`}>1-9 (Menge)</button>
-                                        <button onClick={() => { setSortOption('qty-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-2 text-sm transition-colors ${sortOption === 'qty-desc' ? 'text-blue-600 font-bold bg-blue-50' : 'text-stone-700 hover:bg-stone-50'}`}>9-1 (Menge)</button>
-                                      </div>
-                                    )}
-                                  </div>
+                                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                                  {!isBulkMode && (
+                                    <div className="relative">
+                                      <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(!sortMenuOpen); setOpenMenuId(null); }} className="text-xs md:text-sm px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-medium flex items-center gap-1.5 md:gap-2 transition-all shadow-sm bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-md border border-stone-200">
+                                        <ArrowUpDown className="h-3 w-3 md:h-4 md:w-4"/> Sortieren
+                                      </button>
+                                      {sortMenuOpen && (
+                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-stone-200 py-1 z-50">
+                                          <button onClick={() => { setSortOption('alpha-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-asc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>A-Z (Name)</button>
+                                          <button onClick={() => { setSortOption('alpha-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>Z-A (Name)</button>
+                                          <div className="h-px bg-stone-100 my-1 w-full" />
+                                          <button onClick={() => { setSortOption('qty-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'qty-asc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>1-9 (Menge)</button>
+                                          <button onClick={() => { setSortOption('qty-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'qty-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>9-1 (Menge)</button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
 
-                                  <button onClick={() => { setIsBulkMode(!isBulkMode); setSelectedItemIds([]); }} className={`text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2 rounded-lg md:rounded-xl font-medium flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${isBulkMode ? 'bg-blue-500 text-white shadow-blue-200' : 'bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-md border border-stone-200'}`}>
-                                    <Edit2 className="h-3 w-3 md:h-4 md:w-4"/> {isBulkMode ? 'Fertig' : 'Mehrere'}
+                                  {isBulkMode && (
+                                    <button onClick={handleSelectAll} className="text-xs md:text-sm px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-medium flex items-center gap-1.5 transition-all shadow-sm bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200">
+                                      <CheckSquare className="h-4 w-4"/> {selectedItemIds.length === currentListItems.length ? 'Keine' : 'Alle'}
+                                    </button>
+                                  )}
+
+                                  <button onClick={() => { setIsBulkMode(!isBulkMode); setSelectedItemIds([]); }} className={`text-xs md:text-sm px-3 md:px-4 py-2 md:py-2.5 rounded-xl font-medium flex items-center gap-1.5 md:gap-2 transition-all shadow-sm ${isBulkMode ? 'bg-violet-500 text-white shadow-violet-200' : 'bg-stone-50 text-stone-600 hover:bg-stone-100 hover:shadow-md border border-stone-200'}`}>
+                                    <Edit2 className="h-4 w-4"/> {isBulkMode ? 'Fertig' : 'Mehrere'}
                                   </button>
                                 </div>
                               )}
@@ -751,33 +873,29 @@
                             {!isBulkMode && (
                               <form onSubmit={(e) => addItem(e, activeList.id)} className="mb-6 md:mb-8 relative z-0">
                                 <div className="relative shadow-sm md:shadow-md hover:shadow-lg transition-shadow rounded-xl md:rounded-2xl group">
-                                  <input type="text" placeholder={`Z.B. "4 hosen" oder "Zelt"`} value={newItemNames[activeList.id] || ''} onChange={(e) => setNewItemNames({ ...newItemNames, [activeList.id]: e.target.value })} className="w-full bg-white border border-stone-200 rounded-xl md:rounded-2xl py-3 md:py-4 pl-4 md:pl-5 pr-12 md:pr-14 text-sm md:text-base focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-stone-400" />
-                                  <button type="submit" className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 text-white bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all shadow-sm md:shadow-md transform group-focus-within:scale-110"><Plus className="h-5 w-5 md:h-6 md:w-6" /></button>
+                                  <input type="text" placeholder={`Z.B. "3x Hosen" oder "Zelt"`} value={newItemNames[activeList.id] || ''} onChange={(e) => setNewItemNames({ ...newItemNames, [activeList.id]: e.target.value })} className="w-full bg-white border border-stone-200 rounded-xl md:rounded-2xl py-3.5 md:py-4 pl-4 md:pl-5 pr-12 md:pr-14 text-base md:text-base focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all placeholder:text-stone-400" />
+                                  <button type="submit" className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 text-white bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 p-2 rounded-lg md:rounded-xl transition-all shadow-sm md:shadow-md transform group-focus-within:scale-110 active:scale-95"><Plus className="h-5 w-5 md:h-6 md:w-6" /></button>
                                 </div>
-                                <p className="text-[9px] md:text-[10px] text-stone-400 mt-1 md:mt-2 ml-2 font-medium">Tipp: "4 hosen" erstellt automatisch 4 abhakkbare Stück!</p>
                               </form>
                             )}
 
-                            {/* Offene Items */}
-                            <ul className="space-y-1.5 md:space-y-2 mb-6 md:mb-8">
+                            <ul className="space-y-2 md:space-y-2.5 mb-6 md:mb-8">
                               {openItems.map(item => {
                                 const maxQty = item.quantity || 1;
                                 const currentQty = item.checkedQuantity !== undefined ? item.checkedQuantity : 0;
                                 const isAnimating = animatingItems[item.id];
-                                
-                                // NEU: Farbverlauf basierend auf abgehakter Menge
                                 const currentItemBg = getProgressColor(currentQty, maxQty, item.checked);
 
                                 return (
-                                  <li key={`open-${item.id}`} className={`animate-slide-up-open group flex items-center justify-between p-2.5 md:p-3 rounded-xl md:rounded-2xl transition-all duration-300 border cursor-pointer relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50' : 'z-10'}`} onClick={() => toggleItem(item.id, 'toggle')}>
-                                    <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+                                  <li key={`open-${item.id}`} className={`animate-slide-up-open group flex items-center justify-between p-2 md:p-3.5 rounded-xl md:rounded-2xl transition-all duration-300 border cursor-pointer relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50' : 'z-10'} ${isBulkMode ? 'items-stretch overflow-hidden' : ''}`} onClick={() => !isBulkMode && toggleItem(item.id, 'toggle')}>
+                                    <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`} onClick={() => isBulkMode && toggleItem(item.id, 'toggle')}>
                                       <span className="flex-shrink-0 transition-colors">
                                         {isBulkMode ? (
-                                          <div className={`w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-blue-500 border-blue-500 shadow-md shadow-blue-200' : 'border-stone-300 bg-white'}`}>
-                                            {selectedItemIds.includes(item.id) && <Check className="h-3 w-3 md:h-4 md:w-4 text-white" />}
+                                          <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500 shadow-md shadow-violet-200' : 'border-stone-300 bg-white'}`}>
+                                            {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
                                           </div>
                                         ) : (
-                                          <Square className={`h-6 w-6 md:h-7 md:w-7 text-stone-300 group-hover:text-blue-400 transition-colors ${isAnimating ? 'animate-check text-blue-500' : ''}`} />
+                                          <Square className={`h-7 w-7 md:h-8 md:w-8 text-stone-300 group-hover:text-violet-400 transition-colors ${isAnimating ? 'animate-check text-violet-500' : ''}`} />
                                         )}
                                       </span>
                                       <div className="flex-1 text-stone-700 font-semibold text-sm md:text-base truncate leading-tight">
@@ -785,17 +903,29 @@
                                       </div>
                                     </div>
                                     
-                                    {!isBulkMode && (
-                                      <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                                    {isBulkMode ? (
+                                      <div className="flex items-stretch ml-2 gap-1 bg-white/50 p-1 rounded-xl shadow-sm border border-stone-200/50">
+                                         <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, -1); }} className="bg-red-50 hover:bg-red-500 text-red-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-red-100 hover:border-red-500 active:scale-95">
+                                            <Minus className="h-5 w-5 md:h-6 md:w-6"/>
+                                         </button>
+                                         <div className="flex items-center justify-center bg-white px-4 md:px-5 font-black text-stone-700 text-lg md:text-xl rounded-lg shadow-inner min-w-[3rem]">
+                                            {maxQty}
+                                         </div>
+                                         <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, 1); }} className="bg-emerald-50 hover:bg-emerald-500 text-emerald-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-emerald-100 hover:border-emerald-500 active:scale-95">
+                                            <Plus className="h-5 w-5 md:h-6 md:w-6"/>
+                                         </button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
                                         {maxQty > 1 && (
-                                          <div className="flex items-center gap-1 md:gap-1.5 bg-white/90 rounded-lg md:rounded-xl p-1 shadow-sm border border-stone-200/60" onClick={e => e.stopPropagation()}>
-                                            <button onClick={() => toggleItem(item.id, 'decrement')} disabled={currentQty === 0} className="p-2 md:p-1.5 bg-stone-50 hover:bg-stone-100 rounded-md md:rounded-lg text-stone-600 disabled:opacity-30 transition-all active:scale-90"><Minus className="h-4 w-4 md:h-3 md:w-3"/></button>
-                                            <span className="w-8 md:w-10 text-center text-xs md:text-sm font-extrabold text-blue-700">{currentQty}/{maxQty}</span>
-                                            <button onClick={() => toggleItem(item.id, 'increment')} className="p-2 md:p-1.5 bg-stone-50 hover:bg-stone-100 rounded-md md:rounded-lg text-stone-600 transition-all active:scale-90"><Plus className="h-4 w-4 md:h-3 md:w-3"/></button>
+                                          <div className="flex items-center gap-1.5 md:gap-2 bg-white/90 rounded-xl md:rounded-2xl p-1 shadow-sm border border-stone-200/60" onClick={e => e.stopPropagation()}>
+                                            <button onClick={() => toggleItem(item.id, 'decrement')} disabled={currentQty === 0} className="p-2 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 disabled:opacity-30 transition-all active:scale-90"><Minus className="h-5 w-5 md:h-5 md:w-5"/></button>
+                                            <span className="w-8 md:w-12 text-center text-xs md:text-sm font-extrabold text-violet-700">{currentQty}/{maxQty}</span>
+                                            <button onClick={() => toggleItem(item.id, 'increment')} className="p-2 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 transition-all active:scale-90"><Plus className="h-5 w-5 md:h-5 md:w-5"/></button>
                                           </div>
                                         )}
                                         <div className="relative">
-                                          <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-1.5 md:p-2 text-stone-400 hover:text-blue-600 rounded-lg md:rounded-xl hover:bg-white transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                                          <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-3 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-white transition-colors"><MoreVertical className="h-5 w-5" /></button>
                                           <DropdownMenu id={`menu-item-${item.id}`} options={[
                                               { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
                                                   const editStr = maxQty > 1 ? `${maxQty}x ${item.name}` : item.name;
@@ -813,36 +943,35 @@
                                   </li>
                                 )
                               })}
-                              {openItems.length === 0 && doneItems.length === 0 && (<div className="text-center py-12 text-stone-400 font-medium">Noch nichts zu packen!</div>)}
+                              {openItems.length === 0 && doneItems.length === 0 && (<div className="text-center py-12 text-stone-400 font-medium bg-stone-50/50 rounded-2xl border border-dashed border-stone-200">Noch nichts zu packen!</div>)}
                             </ul>
 
-                            {/* Erledigte Items mit Reparierter Animation */}
                             {doneItems.length > 0 && (
                               <div className="mt-6 md:mt-10 pt-4 md:pt-6 border-t border-stone-200/50 relative">
                                 <h4 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 md:mb-4 px-2 flex items-center gap-2">
-                                  Erledigt <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{doneItems.length}</span>
+                                  Erledigt <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{doneItems.length}</span>
                                 </h4>
-                                <ul className="space-y-1.5 md:space-y-2 opacity-80 hover:opacity-100 transition-opacity duration-500">
+                                <ul className="space-y-2 md:space-y-2.5 opacity-80 hover:opacity-100 transition-opacity duration-500">
                                   {doneItems.map(item => {
                                     const maxQty = item.quantity || 1;
                                     return (
-                                      <li key={`done-${item.id}`} className={`animate-drop-down flex items-center justify-between p-2.5 md:p-3 bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 cursor-pointer relative ${openMenuId === 'menu-item-done-'+item.id ? 'z-50' : 'z-10'}`} onClick={() => toggleItem(item.id, 'toggle')}>
-                                        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+                                      <li key={`done-${item.id}`} className={`animate-drop-down flex items-center justify-between p-3 md:p-3.5 bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 cursor-pointer relative ${openMenuId === 'menu-item-done-'+item.id ? 'z-50' : 'z-10'}`} onClick={() => !isBulkMode && toggleItem(item.id, 'toggle')}>
+                                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0" onClick={() => isBulkMode && toggleItem(item.id, 'toggle')}>
                                           <span className="flex-shrink-0">
                                             {isBulkMode ? (
-                                              <div className={`w-5 h-5 md:w-6 md:h-6 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-blue-500 border-blue-500' : 'border-stone-300 bg-white'}`}>
-                                                {selectedItemIds.includes(item.id) && <Check className="h-3 w-3 md:h-4 md:w-4 text-white" />}
+                                              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500' : 'border-stone-300 bg-white'}`}>
+                                                {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
                                               </div>
-                                            ) : (<CheckSquare className="h-6 w-6 md:h-7 md:w-7 text-blue-500" />)}
+                                            ) : (<CheckSquare className="h-7 w-7 md:h-8 md:w-8 text-violet-500" />)}
                                           </span>
-                                          <div className="flex-1 text-stone-500 line-through decoration-blue-300/50 decoration-2 text-sm md:text-base font-medium truncate leading-tight">
-                                            {maxQty > 1 ? <span className="font-bold text-blue-600 mr-1">{maxQty}x</span> : null}
+                                          <div className="flex-1 text-stone-500 line-through decoration-violet-300/50 decoration-2 text-sm md:text-base font-medium truncate leading-tight">
+                                            {maxQty > 1 ? <span className="font-bold text-violet-600 mr-1">{maxQty}x</span> : null}
                                             {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
                                           </div>
                                         </div>
                                         {!isBulkMode && (
-                                          <div className="relative pl-1 md:pl-2 shrink-0">
-                                            <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-done-${item.id}`); }} className="p-1.5 md:p-2 text-stone-400 hover:text-blue-600 rounded-lg md:rounded-xl hover:bg-stone-100 transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                                          <div className="relative pl-2 md:pl-2 shrink-0">
+                                            <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-done-${item.id}`); }} className="p-3 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-stone-100 transition-colors"><MoreVertical className="h-5 w-5" /></button>
                                             <DropdownMenu id={`menu-item-done-${item.id}`} options={[
                                                 { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
                                                     const editStr = maxQty > 1 ? `${maxQty}x ${item.name}` : item.name;
@@ -866,7 +995,7 @@
                       </div>
                     ) : (
                       <div className="text-center p-16 bg-white/60 backdrop-blur-md rounded-3xl border border-dashed border-stone-300 shadow-sm">
-                        <Folder className="h-20 w-20 text-blue-200 mx-auto mb-6 drop-shadow-sm" />
+                        <Folder className="h-20 w-20 text-violet-200 mx-auto mb-6 drop-shadow-sm" />
                         <h3 className="text-xl font-bold text-stone-700 mb-2">Keine Kategorie ausgewählt</h3>
                         <p className="text-sm text-stone-500">Wähle links eine Liste aus oder erstelle eine neue.</p>
                       </div>
@@ -874,17 +1003,18 @@
                   </div>
                 </div>
                 
+                {}
                 {isBulkMode && selectedItemIds.length > 0 && (
-                  <div className="fixed bottom-0 left-0 md:left-80 right-0 bg-white/90 backdrop-blur-xl border-t border-stone-200 p-4 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-40 flex justify-center gap-3 flex-wrap">
-                     <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><ArrowRightLeft className="h-4 w-4"/> Verschieben ({selectedItemIds.length})</button>
-                     <button onClick={() => openTransferModal('copy', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><CopyIcon className="h-4 w-4"/> Kopieren</button>
-                     <button onClick={executeBulkDelete} className="flex items-center gap-2 px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all shadow-sm hover:shadow"><Trash2 className="h-4 w-4"/> Löschen</button>
+                  <div className="fixed bottom-0 left-0 md:left-80 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 p-4 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-40 flex justify-center gap-3 flex-wrap">
+                     <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><ArrowRightLeft className="h-4 w-4"/> Verschieben ({selectedItemIds.length})</button>
+                     <button onClick={() => openTransferModal('copy', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><CopyIcon className="h-4 w-4"/> Kopieren</button>
+                     <button onClick={executeBulkDelete} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all shadow-sm hover:shadow"><Trash2 className="h-4 w-4"/> Löschen</button>
                   </div>
                 )}
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500 bg-white/50 m-4 rounded-3xl shadow-xl border border-white/60 backdrop-blur-sm">
-                <Tent className="h-24 w-24 text-indigo-200 mb-6 drop-shadow-md" />
+                <Tent className="h-24 w-24 text-fuchsia-200 mb-6 drop-shadow-md" />
                 <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim CampPacker</h2>
                 <p className="max-w-md mx-auto text-sm mb-4">Wähle links einen Trip an, um zu starten.</p>
               </div>
@@ -896,11 +1026,11 @@
             <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={closeConfirm}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-stone-100" onClick={e => e.stopPropagation()}>
                 <div className="p-8">
-                  <div className="flex items-center gap-3 text-blue-500 mb-4"><AlertTriangle className="h-8 w-8" /><h3 className="text-xl font-extrabold text-stone-800">Sicher?</h3></div>
+                  <div className="flex items-center gap-3 text-violet-500 mb-4"><AlertTriangle className="h-8 w-8" /><h3 className="text-xl font-extrabold text-stone-800">Sicher?</h3></div>
                   <p className="text-stone-600 mb-8 font-medium leading-relaxed">{confirmDialog.message}</p>
                   <div className="flex justify-end gap-3">
-                    <button onClick={closeConfirm} className="px-5 py-2.5 text-stone-500 font-bold hover:bg-stone-100 rounded-xl transition-colors">Abbrechen</button>
-                    <button onClick={() => { if(confirmDialog.onConfirm) confirmDialog.onConfirm(); closeConfirm(); }} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Ja, ausführen</button>
+                    <button onClick={closeConfirm} className="px-5 py-3 md:py-2.5 text-stone-500 font-bold hover:bg-stone-100 rounded-xl transition-colors">Abbrechen</button>
+                    <button onClick={() => { if(confirmDialog.onConfirm) confirmDialog.onConfirm(); closeConfirm(); }} className="px-5 py-3 md:py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Ja, ausführen</button>
                   </div>
                 </div>
               </div>
@@ -914,26 +1044,45 @@
                 <div className="p-6 space-y-5">
                   <div>
                     <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel-Trip</label>
-                    <select value={targetFolderId} onChange={(e) => { setTargetFolderId(e.target.value); const folderLists = lists.filter(l => l.folderId === e.target.value); setTargetListId(folderLists.length > 0 ? folderLists[0].id : ''); }} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-3.5 outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-stone-700 transition-all shadow-inner">
+                    <select value={targetFolderId} onChange={(e) => { setTargetFolderId(e.target.value); const folderLists = lists.filter(l => l.folderId === e.target.value); setTargetListId(folderLists.length > 0 ? folderLists[0].id : ''); }} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
                       <option value="" disabled>Bitte wählen...</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
                   </div>
                   {(transferModal.sourceType === 'item' || transferModal.sourceType === 'bulk-items') && targetFolderId && (
                     <div className="animate-slide-in">
                       <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel-Kategorie</label>
-                      <select value={targetListId} onChange={(e) => setTargetListId(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-3.5 outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-stone-700 transition-all shadow-inner">
+                      <select value={targetListId} onChange={(e) => setTargetListId(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
                         <option value="" disabled>Bitte wählen...</option>{lists.filter(l => l.folderId === targetFolderId).map(l => ( <option key={l.id} value={l.id}>{l.name}</option> ))}
                       </select>
                     </div>
                   )}
                 </div>
                 <div className="p-5 bg-stone-50/80 flex justify-end gap-3 border-t border-stone-100/50">
-                  <button onClick={() => setTransferModal({isOpen: false})} className="px-5 py-2.5 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
-                  <button onClick={executeTransfer} disabled={transferModal.sourceType !== 'list' && !targetListId} className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">Ausführen</button>
+                  <button onClick={() => setTransferModal({isOpen: false})} className="px-5 py-3 md:py-2.5 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
+                  <button onClick={executeTransfer} disabled={transferModal.sourceType !== 'list' && !targetListId} className="px-5 py-3 md:py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">Ausführen</button>
                 </div>
               </div>
             </div>
           )}
+
+          {iconModal.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={() => setIconModal({ isOpen: false, listId: null })}>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center">
+                  <h3 className="text-xl font-extrabold text-stone-800">Icon auswählen</h3>
+                  <button onClick={() => setIconModal({ isOpen: false, listId: null })} className="p-2 text-stone-400 hover:bg-stone-200 rounded-full transition-colors"><X className="h-5 w-5"/></button>
+                </div>
+                <div className="p-6 grid grid-cols-5 md:grid-cols-6 gap-3">
+                  {EMOJI_OPTIONS.map(emoji => (
+                    <button key={emoji} onClick={() => selectEmoji(emoji)} className="text-3xl p-2 hover:bg-violet-100 rounded-xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {isSidebarOpen && <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm z-20 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
         </div>
       );
