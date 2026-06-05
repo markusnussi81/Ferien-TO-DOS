@@ -57,6 +57,18 @@
     }
     .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
 
+    /* --- SWIPE ANIMATIONS --- */
+    @keyframes swipeNext {
+      0% { opacity: 0; transform: translateX(100px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes swipePrev {
+      0% { opacity: 0; transform: translateX(-100px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    .animate-swipe-next { animation: swipeNext 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+    .animate-swipe-prev { animation: swipePrev 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+
     /* --- DER iOS KALENDER HACK (Kugelsicher) --- */
     .date-wrapper { position: relative; display: flex; align-items: center; overflow: hidden; }
     .date-input-native {
@@ -141,7 +153,6 @@
       let quantity = 1;
       let name = input.trim();
       
-      // Sucht nach Leerzeichen + Zahl + optional 'x' oder 'stk' + Leerzeichen
       const regexSpace = /(?:^|\s)(\d+)(?:x|stk\.?)?(?:\s|$)/i;
       const matchSpace = name.match(regexSpace);
       
@@ -149,14 +160,12 @@
         quantity = parseInt(matchSpace[1], 10);
         name = name.replace(matchSpace[0], ' ').trim();
       } else {
-        // Sucht am Anfang direkt drangehängt (z.B. "3xHose")
         const regexStart = /^(\d+)(?:x|stk\.?)(.*)/i;
         const matchStart = name.match(regexStart);
         if (matchStart) {
           quantity = parseInt(matchStart[1], 10);
           name = matchStart[2].trim();
         } else {
-          // Sucht am Ende direkt drangehängt (z.B. "Hose3x")
           const regexEnd = /(.*?)(\d+)(?:x|stk\.?)$/i;
           const matchEnd = name.match(regexEnd);
           if (matchEnd) {
@@ -224,9 +233,10 @@
       const [localRegion, setLocalRegion] = useState('');
       const [weatherCache, setWeatherCache] = useState({});
       
-      // Swipe State
+      // Real-time Swipe State
       const [touchStart, setTouchStart] = useState(null);
-      const [touchEnd, setTouchEnd] = useState(null);
+      const [swipeOffset, setSwipeOffset] = useState(0);
+      const [swipeDirection, setSwipeDirection] = useState(''); // 'next' oder 'prev'
 
       const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -600,34 +610,62 @@
          else setSelectedItemIds(currentListItems.map(i => i.id)); 
       };
 
-      // Swipe Handler für Listen
+      // --- ERWEITERTER SWIPE HANDLER MIT LIVE DRAG ---
       const handleTouchStart = (e) => {
-        setTouchEnd(null);
         setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+        setSwipeOffset(0);
       };
 
       const handleTouchMove = (e) => {
-        setTouchEnd({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
+        if (!touchStart || activeLists.length <= 1) return;
+        const currentX = e.targetTouches[0].clientX;
+        const currentY = e.targetTouches[0].clientY;
+        const deltaX = currentX - touchStart.x;
+        const deltaY = currentY - touchStart.y;
+        
+        // Drag aktivieren, wenn primär horizontal gewischt wird
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+          const currentIndex = activeLists.findIndex(l => l.id === activeListId);
+          
+          // Gummi-Widerstand an den Enden (erste/letzte Liste)
+          if ((currentIndex === 0 && deltaX > 0) || (currentIndex === activeLists.length - 1 && deltaX < 0)) {
+            setSwipeOffset(deltaX * 0.25); 
+          } else {
+            setSwipeOffset(deltaX);
+          }
+        } else if (Math.abs(deltaY) > Math.abs(deltaX)) {
+          // Resetten wenn vertikal gescrollt wird
+          setSwipeOffset(0);
+        }
       };
 
       const handleTouchEnd = () => {
-        if (!touchStart || !touchEnd || activeLists.length <= 1) return;
-        const distanceX = touchStart.x - touchEnd.x;
-        const distanceY = touchStart.y - touchEnd.y;
+        if (!touchStart || activeLists.length <= 1) {
+          setSwipeOffset(0);
+          return;
+        }
         
-        // Wischen nur zulassen, wenn horizontal deutlich stärker als vertikal (damit man normal scrollen kann)
-        if (Math.abs(distanceX) > Math.abs(distanceY) && Math.abs(distanceX) > 60) {
-          const isLeftSwipe = distanceX > 0;
+        const threshold = 60; // Pixel, die man wischen muss zum Wechseln
+        
+        if (swipeOffset < -threshold) { 
+          // Wisch nach Links -> Nächste Liste
           const currentIndex = activeLists.findIndex(l => l.id === activeListId);
-          
-          if (isLeftSwipe && currentIndex < activeLists.length - 1) {
+          if (currentIndex < activeLists.length - 1) {
+            setSwipeDirection('next');
             setActiveListId(activeLists[currentIndex + 1].id);
-          } else if (!isLeftSwipe && currentIndex > 0) {
+          }
+        } else if (swipeOffset > threshold) {
+          // Wisch nach Rechts -> Vorherige Liste
+          const currentIndex = activeLists.findIndex(l => l.id === activeListId);
+          if (currentIndex > 0) {
+            setSwipeDirection('prev');
             setActiveListId(activeLists[currentIndex - 1].id);
           }
         }
+        
+        // Nach dem Loslassen Drag-Status zurücksetzen
         setTouchStart(null);
-        setTouchEnd(null);
+        setSwipeOffset(0);
       };
 
       return (
@@ -638,7 +676,7 @@
               <Tent className="h-6 w-6 text-violet-200 shrink-0" />
               <div className="flex items-center min-w-0">
                 <span className="truncate">{appTitle}</span>
-                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.5.0</span>
+                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.5.1</span>
               </div>
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/20 rounded transition-colors shrink-0">
@@ -657,7 +695,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.5.0</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.5.1</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -704,7 +742,7 @@
                               const isActiveList = activeListId === list.id;
                               return (
                                 <div key={list.id} className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 ${isActiveList ? 'bg-white shadow-sm border border-violet-100/50' : 'hover:bg-white/50 text-stone-600'}`}>
-                                  <div className="flex items-center gap-2.5 flex-1 overflow-hidden" onClick={() => { setActiveListId(list.id); if (window.innerWidth < 768) setIsSidebarOpen(false); }}>
+                                  <div className="flex items-center gap-2.5 flex-1 overflow-hidden" onClick={() => { setActiveListId(list.id); setSwipeDirection(''); if (window.innerWidth < 768) setIsSidebarOpen(false); }}>
                                     <span className="text-base flex-shrink-0 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
                                         {list.icon || getCategoryEmoji(list.name)}
                                     </span>
@@ -771,12 +809,10 @@
               </div>
             ) : activeFolder ? (
               <>
-                {/* --- AUFGERÄUMTER TRIP-HEADER --- */}
                 <header className="pt-4 pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/60 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8">
                   <div className="w-full max-w-full mx-auto flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
                     
                     <div className="flex-1 min-w-0 w-full">
-                      {/* Zeile 1: Name der Reise */}
                       <div className="flex items-center gap-2 md:gap-3 flex-wrap mb-2.5">
                          <h2 className="text-2xl md:text-3xl font-extrabold text-stone-800 drop-shadow-sm flex items-center flex-wrap gap-2 flex-1 min-w-0">
                             {editingId === `folder-header-${activeFolder.id}` ? (
@@ -790,35 +826,29 @@
                          </h2>
                       </div>
 
-                      {/* Zeile 2: Info Badges */}
                       <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm font-medium">
-                         {/* Gesamt-Stats */}
                          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 shadow-sm text-stone-600 font-bold" title="Erledigt / Gesamt">
                             <CheckSquare className="h-3.5 w-3.5 text-violet-500" />
                             <span>{activeStats.done} / {activeStats.total}</span>
                          </div>
                          
-                         {/* Noch X Tage */}
                          {getDaysLeft(activeFolder.date) && (
                             <div className="flex items-center gap-1.5 bg-violet-100 text-violet-800 px-2.5 py-1.5 rounded-lg shadow-sm font-bold">
                                <Clock className="h-3.5 w-3.5"/> <span>{getDaysLeft(activeFolder.date)}</span>
                             </div>
                          )}
                          
-                         {/* Datum Input */}
                          <div className="date-wrapper flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 shadow-sm hover:border-violet-300 transition-colors group">
                             <CalendarDays className="h-3.5 w-3.5 text-violet-500" />
                             <span className="text-stone-600 group-hover:text-violet-700 transition-colors">{activeFolder.date ? new Date(activeFolder.date).toLocaleDateString('de-DE') : 'Datum wählen'}</span>
                             <input type="date" value={activeFolder.date || ''} onChange={(e) => handleDateChange(activeFolder.id, e.target.value)} className="date-input-native" />
                          </div>
                          
-                         {/* Region Input */}
                          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 shadow-sm hover:border-violet-300 transition-colors">
                             <MapPin className="h-3.5 w-3.5 text-violet-500" />
                             <input type="text" placeholder="Ort eingeben" value={localRegion} onChange={(e) => setLocalRegion(e.target.value)} onBlur={() => handleRegionBlur(activeFolder.id)} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} className="bg-transparent border-none outline-none text-stone-600 placeholder:text-stone-400 w-[90px] md:w-[130px]" />
                          </div>
                          
-                         {/* Wetter Badge */}
                          {weatherCache[activeFolder.region] && typeof weatherCache[activeFolder.region] === 'object' && (
                             <div className="flex items-center gap-1.5 bg-gradient-to-r from-sky-50 to-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-lg border border-indigo-100 shadow-sm">
                                <span className="text-base leading-none">{weatherCache[activeFolder.region].emoji}</span>
@@ -828,7 +858,6 @@
                       </div>
                     </div>
 
-                    {/* Reaktivieren Button Desktop */}
                     {activeStats.progress > 0 && (
                       <div className="mt-2 md:mt-0">
                          <button onClick={() => reactivateAllInFolder(activeFolder.id)} className="w-full md:w-auto text-[11px] md:text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 text-stone-500 hover:text-stone-800 bg-white hover:bg-stone-50 px-4 py-2 md:py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md border border-stone-200 shrink-0">
@@ -839,14 +868,19 @@
                   </div>
                 </header>
 
-                {/* --- LISTEN BEREICH --- */}
-                <div className="flex-1 overflow-y-auto p-2 md:p-8 relative">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative">
                   <div className="w-full max-w-full mx-auto relative h-full min-h-full">
                     {activeList ? (
-                      <div className="bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-24 relative overflow-hidden touch-pan-y" 
+                      <div key={activeList.id}
+                           className={`bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-24 relative overflow-hidden touch-pan-y ${swipeDirection === 'next' ? 'animate-swipe-next' : swipeDirection === 'prev' ? 'animate-swipe-prev' : ''}`}
+                           style={{ 
+                             transform: swipeOffset !== 0 ? `translateX(${swipeOffset}px)` : 'translateX(0)',
+                             transition: swipeOffset === 0 ? 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)' : 'none'
+                           }}
                            onTouchStart={handleTouchStart} 
                            onTouchMove={handleTouchMove} 
-                           onTouchEnd={handleTouchEnd}>
+                           onTouchEnd={handleTouchEnd}
+                      >
                            
                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
                             <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-violet-100/50 to-fuchsia-100/50 rounded-full blur-3xl"></div>
@@ -854,9 +888,7 @@
 
                         <div className="relative z-10">
                             
-                            {/* --- OPTIMIERTE KATEGORIE ZEILE --- */}
                             <div className="flex items-center justify-between mb-4 md:mb-6 w-full gap-2">
-                              {/* Titel Links */}
                               <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                                 <div className="bg-violet-100/80 p-2 md:p-2.5 rounded-xl md:rounded-2xl shadow-sm text-xl md:text-2xl flex items-center justify-center transform -rotate-3 cursor-pointer hover:bg-violet-200 transition-colors shrink-0" onClick={() => setIconModal({ isOpen: true, listId: activeList.id })} title="Icon ändern">
                                   {activeList.icon || getCategoryEmoji(activeList.name)}
@@ -866,7 +898,6 @@
                                 </h3>
                               </div>
                               
-                              {/* Action Buttons Rechts (Mehrere/Sortieren) auf gleicher Höhe */}
                               {(openItems.length > 0 || doneItems.length > 0) && (
                                 <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                                   {!isBulkMode && (
@@ -916,9 +947,9 @@
                                 const currentItemBg = getProgressColor(currentQty, maxQty, item.checked);
 
                                 return (
-                                  <li key={`open-${item.id}`} className={`animate-slide-up-open group flex items-center justify-between p-2 md:p-3.5 rounded-xl md:rounded-2xl transition-all duration-300 border cursor-pointer relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50' : 'z-10'} ${isBulkMode ? 'items-stretch overflow-hidden' : ''}`} onClick={() => !isBulkMode && toggleItem(item.id, 'toggle')}>
-                                    <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`} onClick={() => isBulkMode && toggleItem(item.id, 'toggle')}>
-                                      <span className="flex-shrink-0 transition-colors">
+                                  <li key={`open-${item.id}`} className={`animate-slide-up-open group flex items-center justify-between p-2 md:p-3.5 rounded-xl md:rounded-2xl transition-all duration-300 border relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50' : 'z-10'} ${isBulkMode ? 'items-stretch overflow-hidden' : ''}`}>
+                                    <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`}>
+                                      <span className="flex-shrink-0 transition-colors cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
                                         {isBulkMode ? (
                                           <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500 shadow-md shadow-violet-200' : 'border-stone-300 bg-white'}`}>
                                             {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
@@ -927,7 +958,6 @@
                                           <Square className={`h-6 w-6 md:h-7 md:w-7 text-stone-300 group-hover:text-violet-400 transition-colors ${isAnimating ? 'animate-check text-violet-500' : ''}`} />
                                         )}
                                       </span>
-                                      {/* KLEINERE SCHRIFTGRÖSSE HIER */}
                                       <div className="flex-1 text-stone-700 font-semibold text-xs md:text-sm truncate leading-tight">
                                         {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
                                       </div>
@@ -985,16 +1015,15 @@
                                   {doneItems.map(item => {
                                     const maxQty = item.quantity || 1;
                                     return (
-                                      <li key={`done-${item.id}`} className={`animate-drop-down flex items-center justify-between p-2.5 md:p-3.5 bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 cursor-pointer relative ${openMenuId === 'menu-item-done-'+item.id ? 'z-50' : 'z-10'}`} onClick={() => !isBulkMode && toggleItem(item.id, 'toggle')}>
-                                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0" onClick={() => isBulkMode && toggleItem(item.id, 'toggle')}>
-                                          <span className="flex-shrink-0">
+                                      <li key={`done-${item.id}`} className={`animate-drop-down flex items-center justify-between p-2.5 md:p-3.5 bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 relative ${openMenuId === 'menu-item-done-'+item.id ? 'z-50' : 'z-10'}`}>
+                                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                                          <span className="flex-shrink-0 cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
                                             {isBulkMode ? (
                                               <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500' : 'border-stone-300 bg-white'}`}>
                                                 {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
                                               </div>
                                             ) : (<CheckSquare className="h-6 w-6 md:h-7 md:w-7 text-violet-500" />)}
                                           </span>
-                                          {/* KLEINERE SCHRIFTGRÖSSE HIER */}
                                           <div className="flex-1 text-stone-500 line-through decoration-violet-300/50 decoration-2 text-xs md:text-sm font-medium truncate leading-tight">
                                             {maxQty > 1 ? <span className="font-bold text-violet-600 mr-1">{maxQty}x</span> : null}
                                             {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
@@ -1034,7 +1063,6 @@
                   </div>
                 </div>
                 
-                {/* --- BULK MODUS BOTTOM BAR --- */}
                 {isBulkMode && selectedItemIds.length > 0 && (
                   <div className="fixed bottom-0 left-0 md:left-80 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 p-4 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-40 flex justify-center gap-3 flex-wrap">
                      <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><ArrowRightLeft className="h-4 w-4"/> Verschieben ({selectedItemIds.length})</button>
@@ -1052,7 +1080,6 @@
             )}
           </main>
 
-          {/* --- DIALOGE --- */}
           {confirmDialog.isOpen && (
             <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={closeConfirm}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-stone-100" onClick={e => e.stopPropagation()}>
