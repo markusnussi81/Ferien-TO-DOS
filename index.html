@@ -130,6 +130,9 @@
     const Cloud = (p) => <IconWrapper {...p}><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></IconWrapper>;
     const ArrowUpDown = (p) => <IconWrapper {...p}><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></IconWrapper>;
     const MapPin = (p) => <IconWrapper {...p}><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></IconWrapper>;
+    const Users = (p) => <IconWrapper {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconWrapper>;
+    const ChevronDown = (p) => <IconWrapper {...p}><polyline points="6 9 12 15 18 9"/></IconWrapper>;
+    const ChevronUp = (p) => <IconWrapper {...p}><polyline points="18 15 12 9 6 15"/></IconWrapper>;
 
     const myFirebaseConfig = {
       apiKey: "AIzaSyBoA1ni-vhIDNlTFhibcagIOJETQD1tYh8",
@@ -144,7 +147,6 @@
     const db = getFirestore(app);
     const appId = "camppacker-app-v1-2"; 
 
-    // Globaler, offener Datenzugriff
     const getCol = (name) => collection(db, 'artifacts', appId, 'public', 'data', name);
     const getDocRef = (name, id) => doc(db, 'artifacts', appId, 'public', 'data', name, id);
 
@@ -233,10 +235,13 @@
       const [localRegion, setLocalRegion] = useState('');
       const [weatherCache, setWeatherCache] = useState({});
       
+      const [expandedItems, setExpandedItems] = useState({});
+      const [subItemModal, setSubItemModal] = useState({ isOpen: false, item: null, subItems: [] });
+
       // Real-time Swipe State
       const [touchStart, setTouchStart] = useState(null);
       const [swipeOffset, setSwipeOffset] = useState(0);
-      const [swipeDirection, setSwipeDirection] = useState(''); // 'next' oder 'prev'
+      const [swipeDirection, setSwipeDirection] = useState(''); 
 
       const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -388,14 +393,76 @@
 
       const deleteItem = async (itemId) => await deleteDoc(getDocRef('items', itemId));
 
-      // LÖSCHEN WENN MENGE AUF 0 FÄLLT
+      const toggleExpand = (id) => setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
+
+      const openSubItemModal = (item) => {
+          setSubItemModal({
+              isOpen: true,
+              item,
+              subItems: item.subItems && item.subItems.length > 0 ? [...item.subItems] : [{ id: generateId(), name: '', quantity: item.quantity || 1, checkedQuantity: 0, checked: false }]
+          });
+          setOpenMenuId(null);
+      };
+
+      const saveSubItems = async () => {
+          const { item, subItems } = subItemModal;
+          const validSubItems = subItems.filter(s => s.name.trim() !== '');
+          
+          if (validSubItems.length === 0) {
+             await setDoc(getDocRef('items', item.id), { subItems: null }, { merge: true });
+          } else {
+             let totalQty = 0; let totalChecked = 0;
+             const updatedSubItems = validSubItems.map(s => {
+                 const qty = Math.max(1, parseInt(s.quantity) || 1);
+                 const checkedQty = s.checkedQuantity !== undefined ? s.checkedQuantity : (s.checked ? qty : 0);
+                 const finalCheckedQty = Math.min(qty, checkedQty);
+                 totalQty += qty; totalChecked += finalCheckedQty;
+                 return { ...s, quantity: qty, checkedQuantity: finalCheckedQty, checked: finalCheckedQty === qty };
+             });
+             await setDoc(getDocRef('items', item.id), {
+                 subItems: updatedSubItems, quantity: totalQty, checkedQuantity: totalChecked, checked: totalQty === totalChecked && totalQty > 0
+             }, { merge: true });
+          }
+          setSubItemModal({ isOpen: false, item: null, subItems: [] });
+      };
+
+      const toggleSubItem = async (itemId, subItemId, action = 'toggle') => {
+          const parentItem = items.find(i => i.id === itemId);
+          if (!parentItem || !parentItem.subItems) return;
+          const newSubItems = parentItem.subItems.map(s => {
+              if (s.id === subItemId) {
+                  let cQty = s.checkedQuantity !== undefined ? s.checkedQuantity : (s.checked ? s.quantity : 0);
+                  const mQty = s.quantity || 1;
+                  if (action === 'toggle') { 
+                      const newChecked = !s.checked; 
+                      return { ...s, checkedQuantity: newChecked ? mQty : 0, checked: newChecked }; 
+                  } 
+                  else if (action === 'increment') cQty = Math.min(mQty, cQty + 1);
+                  else if (action === 'decrement') cQty = Math.max(0, cQty - 1);
+                  return { ...s, checkedQuantity: cQty, checked: cQty === mQty };
+              }
+              return s;
+          });
+          const totalQty = newSubItems.reduce((acc, s) => acc + s.quantity, 0);
+          const totalChecked = newSubItems.reduce((acc, s) => acc + s.checkedQuantity, 0);
+          await setDoc(getDocRef('items', itemId), { 
+              subItems: newSubItems, 
+              checkedQuantity: totalChecked, 
+              checked: totalQty > 0 && totalChecked === totalQty 
+          }, { merge: true });
+      };
+
       const updateItemQuantity = async (itemId, delta) => {
         const targetItem = items.find(i => i.id === itemId);
         if(!targetItem) return;
+        
+        if (targetItem.subItems && targetItem.subItems.length > 0) {
+            return; // SubItems verwalten ihre eigene Menge
+        }
+
         const currentQty = targetItem.quantity || 1;
         const newQty = currentQty + delta;
         
-        // Sicherheitsabfrage und Löschen bei 0
         if (newQty <= 0) {
            openConfirm(`Möchtest du "${targetItem.name}" wirklich löschen?`, async () => {
               await deleteItem(itemId);
@@ -418,6 +485,16 @@
         
         const targetItem = items.find(i => i.id === itemId);
         if(!targetItem) return;
+
+        if (action === 'toggle' && targetItem.subItems && targetItem.subItems.length > 0) {
+          const newChecked = !targetItem.checked;
+          const updatedSubItems = targetItem.subItems.map(s => ({ ...s, checkedQuantity: newChecked ? s.quantity : 0, checked: newChecked }));
+          const totalQty = updatedSubItems.reduce((sum, s) => sum + s.quantity, 0);
+          const totalChecked = newChecked ? totalQty : 0;
+          if (newChecked) { setAnimatingItems(prev => ({ ...prev, [itemId]: true })); setTimeout(() => setAnimatingItems(prev => ({ ...prev, [itemId]: false })), 400); }
+          await setDoc(getDocRef('items', itemId), { checked: newChecked, checkedQuantity: totalChecked, subItems: updatedSubItems }, { merge: true });
+          return;
+        }
 
         const maxQty = targetItem.quantity || 1;
         let currentQty = targetItem.checkedQuantity !== undefined ? targetItem.checkedQuantity : (targetItem.checked ? maxQty : 0);
@@ -462,10 +539,15 @@
             const parsed = parseItemInput(editValue.trim());
             const targetItem = items.find(i => i.id === id);
             if (targetItem) {
+               let newQty = parsed.quantity;
                let newCheckedQty = targetItem.checkedQuantity || 0;
-               if (newCheckedQty > parsed.quantity) newCheckedQty = parsed.quantity;
-               let newChecked = newCheckedQty === parsed.quantity;
-               await setDoc(getDocRef('items', id), { name: parsed.name, quantity: parsed.quantity, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
+               if (targetItem.subItems && targetItem.subItems.length > 0) {
+                   newQty = targetItem.quantity;
+               } else {
+                   if (newCheckedQty > newQty) newCheckedQty = newQty;
+               }
+               let newChecked = newCheckedQty === newQty;
+               await setDoc(getDocRef('items', id), { name: parsed.name, quantity: newQty, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
             }
           }
         }
@@ -610,7 +692,6 @@
          else setSelectedItemIds(currentListItems.map(i => i.id)); 
       };
 
-      // --- ERWEITERTER SWIPE HANDLER MIT LIVE DRAG ---
       const handleTouchStart = (e) => {
         setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
         setSwipeOffset(0);
@@ -623,18 +704,14 @@
         const deltaX = currentX - touchStart.x;
         const deltaY = currentY - touchStart.y;
         
-        // Drag aktivieren, wenn primär horizontal gewischt wird
         if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
           const currentIndex = activeLists.findIndex(l => l.id === activeListId);
-          
-          // Gummi-Widerstand an den Enden (erste/letzte Liste)
           if ((currentIndex === 0 && deltaX > 0) || (currentIndex === activeLists.length - 1 && deltaX < 0)) {
             setSwipeOffset(deltaX * 0.25); 
           } else {
             setSwipeOffset(deltaX);
           }
         } else if (Math.abs(deltaY) > Math.abs(deltaX)) {
-          // Resetten wenn vertikal gescrollt wird
           setSwipeOffset(0);
         }
       };
@@ -644,26 +721,20 @@
           setSwipeOffset(0);
           return;
         }
-        
-        const threshold = 60; // Pixel, die man wischen muss zum Wechseln
-        
+        const threshold = 60; 
         if (swipeOffset < -threshold) { 
-          // Wisch nach Links -> Nächste Liste
           const currentIndex = activeLists.findIndex(l => l.id === activeListId);
           if (currentIndex < activeLists.length - 1) {
             setSwipeDirection('next');
             setActiveListId(activeLists[currentIndex + 1].id);
           }
         } else if (swipeOffset > threshold) {
-          // Wisch nach Rechts -> Vorherige Liste
           const currentIndex = activeLists.findIndex(l => l.id === activeListId);
           if (currentIndex > 0) {
             setSwipeDirection('prev');
             setActiveListId(activeLists[currentIndex - 1].id);
           }
         }
-        
-        // Nach dem Loslassen Drag-Status zurücksetzen
         setTouchStart(null);
         setSwipeOffset(0);
       };
@@ -676,7 +747,7 @@
               <Tent className="h-6 w-6 text-violet-200 shrink-0" />
               <div className="flex items-center min-w-0">
                 <span className="truncate">{appTitle}</span>
-                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.5.1</span>
+                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.6.0</span>
               </div>
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/20 rounded transition-colors shrink-0">
@@ -695,7 +766,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.5.1</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.0</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -872,7 +943,7 @@
                   <div className="w-full max-w-full mx-auto relative h-full min-h-full">
                     {activeList ? (
                       <div key={activeList.id}
-                           className={`bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-24 relative overflow-hidden touch-pan-y ${swipeDirection === 'next' ? 'animate-swipe-next' : swipeDirection === 'prev' ? 'animate-swipe-prev' : ''}`}
+                           className={`bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-24 relative touch-pan-y ${swipeDirection === 'next' ? 'animate-swipe-next' : swipeDirection === 'prev' ? 'animate-swipe-prev' : ''}`}
                            style={{ 
                              transform: swipeOffset !== 0 ? `translateX(${swipeOffset}px)` : 'translateX(0)',
                              transition: swipeOffset === 0 ? 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)' : 'none'
@@ -882,7 +953,7 @@
                            onTouchEnd={handleTouchEnd}
                       >
                            
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl md:rounded-3xl">
                             <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-violet-100/50 to-fuchsia-100/50 rounded-full blur-3xl"></div>
                         </div>
 
@@ -945,60 +1016,118 @@
                                 const currentQty = item.checkedQuantity !== undefined ? item.checkedQuantity : 0;
                                 const isAnimating = animatingItems[item.id];
                                 const currentItemBg = getProgressColor(currentQty, maxQty, item.checked);
+                                const hasSubItems = item.subItems && item.subItems.length > 0;
+                                const isExpanded = expandedItems[item.id];
 
                                 return (
-                                  <li key={`open-${item.id}`} className={`animate-slide-up-open group flex items-center justify-between p-2 md:p-3.5 rounded-xl md:rounded-2xl transition-all duration-300 border relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50' : 'z-10'} ${isBulkMode ? 'items-stretch overflow-hidden' : ''}`}>
-                                    <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`}>
-                                      <span className="flex-shrink-0 transition-colors cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
+                                  <li key={`open-${item.id}`} className={`animate-slide-up-open group flex flex-col items-stretch rounded-xl md:rounded-2xl transition-all duration-300 border relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
+                                    <div 
+                                      className={`flex items-center justify-between p-2 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
+                                      onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
+                                    >
+                                      <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`}>
+                                        <span className="flex-shrink-0 transition-colors cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
+                                          {isBulkMode ? (
+                                            <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500 shadow-md shadow-violet-200' : 'border-stone-300 bg-white'}`}>
+                                              {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
+                                            </div>
+                                          ) : (
+                                            <Square className={`h-6 w-6 md:h-7 md:w-7 text-stone-300 hover:text-violet-500 transition-colors ${isAnimating ? 'animate-check text-violet-500' : ''}`} />
+                                          )}
+                                        </span>
+                                        <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-700 font-semibold text-xs md:text-sm leading-tight">
+                                          <span className="truncate">{editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}</span>
+                                          {hasSubItems && (
+                                            <span className="bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded md:rounded-md text-[9px] uppercase tracking-wider font-bold shrink-0 shadow-sm border border-violet-200/50">
+                                              {item.subItems.length} Pers.
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="flex items-center shrink-0 ml-2">
+                                        {hasSubItems && !isBulkMode && (
+                                            <div className="mr-1 text-stone-400 p-1 bg-white/50 rounded-lg group-hover:bg-white group-hover:text-violet-500 transition-colors">
+                                                {isExpanded ? <ChevronUp className="w-5 h-5 md:w-6 md:h-6"/> : <ChevronDown className="w-5 h-5 md:w-6 md:h-6"/>}
+                                            </div>
+                                        )}
+                                        
                                         {isBulkMode ? (
-                                          <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500 shadow-md shadow-violet-200' : 'border-stone-300 bg-white'}`}>
-                                            {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
+                                          <div className="flex items-stretch ml-1 gap-1 bg-white/50 p-1 rounded-xl shadow-sm border border-stone-200/50">
+                                             <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, -1); }} className="bg-red-50 hover:bg-red-500 text-red-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-red-100 hover:border-red-500 active:scale-95">
+                                                <Minus className="h-5 w-5 md:h-6 md:w-6"/>
+                                             </button>
+                                             <div className="flex items-center justify-center bg-white px-4 md:px-5 font-black text-stone-700 text-lg md:text-xl rounded-lg shadow-inner min-w-[3rem]">
+                                                {maxQty}
+                                             </div>
+                                             <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, 1); }} className="bg-emerald-50 hover:bg-emerald-500 text-emerald-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-emerald-100 hover:border-emerald-500 active:scale-95">
+                                                <Plus className="h-5 w-5 md:h-6 md:w-6"/>
+                                             </button>
                                           </div>
                                         ) : (
-                                          <Square className={`h-6 w-6 md:h-7 md:w-7 text-stone-300 group-hover:text-violet-400 transition-colors ${isAnimating ? 'animate-check text-violet-500' : ''}`} />
+                                          <div className="flex items-center gap-1 md:gap-2">
+                                            {!hasSubItems && maxQty > 1 && (
+                                              <div className="flex items-center gap-1.5 md:gap-2 bg-white/90 rounded-xl md:rounded-2xl p-1 shadow-sm border border-stone-200/60" onClick={e => e.stopPropagation()}>
+                                                <button onClick={() => toggleItem(item.id, 'decrement')} disabled={currentQty === 0} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 disabled:opacity-30 transition-all active:scale-90"><Minus className="h-4 w-4 md:h-5 md:w-5"/></button>
+                                                <span className="w-8 md:w-10 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{currentQty}/{maxQty}</span>
+                                                <button onClick={() => toggleItem(item.id, 'increment')} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 transition-all active:scale-90"><Plus className="h-4 w-4 md:h-5 md:w-5"/></button>
+                                              </div>
+                                            )}
+                                            {hasSubItems && maxQty > 1 && (
+                                                <div className="px-2 md:px-3 py-1.5 bg-white/80 rounded-xl border border-stone-200/60 text-[10px] md:text-xs font-extrabold text-violet-700 shadow-sm" onClick={e => e.stopPropagation()}>
+                                                    {currentQty}/{maxQty}
+                                                </div>
+                                            )}
+                                            <div className="relative">
+                                              <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-white transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                                              <DropdownMenu id={`menu-item-${item.id}`} options={[
+                                                  { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
+                                                  { separator: true },
+                                                  { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
+                                                      const editStr = maxQty > 1 && !hasSubItems ? `${maxQty}x ${item.name}` : item.name;
+                                                      startEdit(`item-${item.id}`, editStr);
+                                                  } },
+                                                  { separator: true },
+                                                  { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
+                                                  { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
+                                                  { separator: true },
+                                                  { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
+                                                ]} />
+                                            </div>
+                                          </div>
                                         )}
-                                      </span>
-                                      <div className="flex-1 text-stone-700 font-semibold text-xs md:text-sm truncate leading-tight">
-                                        {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
                                       </div>
                                     </div>
                                     
-                                    {isBulkMode ? (
-                                      <div className="flex items-stretch ml-2 gap-1 bg-white/50 p-1 rounded-xl shadow-sm border border-stone-200/50">
-                                         <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, -1); }} className="bg-red-50 hover:bg-red-500 text-red-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-red-100 hover:border-red-500 active:scale-95">
-                                            <Minus className="h-5 w-5 md:h-6 md:w-6"/>
-                                         </button>
-                                         <div className="flex items-center justify-center bg-white px-4 md:px-5 font-black text-stone-700 text-lg md:text-xl rounded-lg shadow-inner min-w-[3rem]">
-                                            {maxQty}
-                                         </div>
-                                         <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, 1); }} className="bg-emerald-50 hover:bg-emerald-500 text-emerald-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-emerald-100 hover:border-emerald-500 active:scale-95">
-                                            <Plus className="h-5 w-5 md:h-6 md:w-6"/>
-                                         </button>
-                                      </div>
-                                    ) : (
-                                      <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2">
-                                        {maxQty > 1 && (
-                                          <div className="flex items-center gap-1.5 md:gap-2 bg-white/90 rounded-xl md:rounded-2xl p-1 shadow-sm border border-stone-200/60" onClick={e => e.stopPropagation()}>
-                                            <button onClick={() => toggleItem(item.id, 'decrement')} disabled={currentQty === 0} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 disabled:opacity-30 transition-all active:scale-90"><Minus className="h-4 w-4 md:h-5 md:w-5"/></button>
-                                            <span className="w-8 md:w-10 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{currentQty}/{maxQty}</span>
-                                            <button onClick={() => toggleItem(item.id, 'increment')} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 transition-all active:scale-90"><Plus className="h-4 w-4 md:h-5 md:w-5"/></button>
-                                          </div>
-                                        )}
-                                        <div className="relative">
-                                          <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-white transition-colors"><MoreVertical className="h-5 w-5" /></button>
-                                          <DropdownMenu id={`menu-item-${item.id}`} options={[
-                                              { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
-                                                  const editStr = maxQty > 1 ? `${maxQty}x ${item.name}` : item.name;
-                                                  startEdit(`item-${item.id}`, editStr);
-                                              } },
-                                              { separator: true },
-                                              { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
-                                              { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
-                                              { separator: true },
-                                              { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
-                                            ]} />
+                                    {hasSubItems && isExpanded && !isBulkMode && (
+                                        <div className="bg-stone-50/80 border-t border-stone-200/50 p-2 md:p-3 shadow-inner" onClick={e => e.stopPropagation()}>
+                                           <ul className="space-y-1.5">
+                                              {item.subItems.map(sub => {
+                                                 const isSubChecked = sub.checked;
+                                                 return (
+                                                   <li key={sub.id} className={`flex items-center justify-between p-2 md:p-2.5 rounded-xl border transition-colors ${isSubChecked ? 'bg-stone-100/50 border-transparent opacity-70' : 'bg-white border-stone-200 shadow-sm'}`}>
+                                                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                         <span className="cursor-pointer text-stone-300 hover:text-violet-500 transition-colors shrink-0 p-1 -ml-1" onClick={() => toggleSubItem(item.id, sub.id, 'toggle')}>
+                                                            {isSubChecked ? <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-violet-500" /> : <Square className="w-5 h-5 md:w-6 md:h-6" />}
+                                                         </span>
+                                                         <span className={`text-xs md:text-sm font-bold truncate ${isSubChecked ? 'line-through text-stone-400' : 'text-stone-700'}`}>{sub.name}</span>
+                                                      </div>
+                                                      <div className="shrink-0 ml-2">
+                                                         {sub.quantity > 1 ? (
+                                                            <div className="flex items-center gap-1 bg-stone-50 rounded-lg md:rounded-xl p-0.5 md:p-1 border border-stone-200/60 shadow-sm">
+                                                                <button onClick={() => toggleSubItem(item.id, sub.id, 'decrement')} disabled={sub.checkedQuantity === 0} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Minus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                                <span className="w-6 md:w-8 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{sub.checkedQuantity}/{sub.quantity}</span>
+                                                                <button onClick={() => toggleSubItem(item.id, sub.id, 'increment')} disabled={sub.checkedQuantity === sub.quantity} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Plus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                            </div>
+                                                         ) : (
+                                                            <span className="text-[10px] md:text-xs font-bold text-stone-500 bg-white border border-stone-200 px-2 py-0.5 rounded-md shadow-sm">{sub.quantity}x</span>
+                                                         )}
+                                                      </div>
+                                                   </li>
+                                                 )
+                                              })}
+                                           </ul>
                                         </div>
-                                      </div>
                                     )}
                                   </li>
                                 )
@@ -1014,36 +1143,92 @@
                                 <ul className="space-y-2 md:space-y-2.5 opacity-80 hover:opacity-100 transition-opacity duration-500">
                                   {doneItems.map(item => {
                                     const maxQty = item.quantity || 1;
+                                    const hasSubItems = item.subItems && item.subItems.length > 0;
+                                    const isExpanded = expandedItems[item.id];
+
                                     return (
-                                      <li key={`done-${item.id}`} className={`animate-drop-down flex items-center justify-between p-2.5 md:p-3.5 bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 relative ${openMenuId === 'menu-item-done-'+item.id ? 'z-50' : 'z-10'}`}>
-                                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                                          <span className="flex-shrink-0 cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
-                                            {isBulkMode ? (
-                                              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500' : 'border-stone-300 bg-white'}`}>
-                                                {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
+                                      <li key={`done-${item.id}`} className={`animate-drop-down flex flex-col items-stretch bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 relative ${openMenuId === 'menu-item-done-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
+                                        <div 
+                                          className={`flex items-center justify-between p-2.5 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
+                                          onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
+                                        >
+                                          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                                            <span className="flex-shrink-0 cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
+                                              {isBulkMode ? (
+                                                <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500' : 'border-stone-300 bg-white'}`}>
+                                                  {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
+                                                </div>
+                                              ) : (<CheckSquare className="h-6 w-6 md:h-7 md:w-7 text-violet-500" />)}
+                                            </span>
+                                            <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-500 line-through decoration-violet-300/50 decoration-2 text-xs md:text-sm font-medium leading-tight">
+                                              <span className="truncate">
+                                                {maxQty > 1 && !hasSubItems ? <span className="font-bold text-violet-600 mr-1">{maxQty}x</span> : null}
+                                                {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
+                                              </span>
+                                              {hasSubItems && (
+                                                <span className="bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded md:rounded-md text-[9px] uppercase tracking-wider font-bold shrink-0 no-underline decoration-transparent">
+                                                  {item.subItems.length} Pers.
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          
+                                          {!isBulkMode && (
+                                            <div className="flex items-center shrink-0 ml-2">
+                                              {hasSubItems && (
+                                                  <div className="mr-1 text-stone-400 p-1 bg-stone-100 rounded-lg group-hover:bg-stone-200 group-hover:text-violet-600 transition-colors">
+                                                      {isExpanded ? <ChevronUp className="w-5 h-5 md:w-6 md:h-6"/> : <ChevronDown className="w-5 h-5 md:w-6 md:h-6"/>}
+                                                  </div>
+                                              )}
+                                              <div className="relative pl-1 md:pl-2">
+                                                <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-done-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-stone-100 transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                                                <DropdownMenu id={`menu-item-done-${item.id}`} options={[
+                                                    { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
+                                                    { separator: true },
+                                                    { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
+                                                        const editStr = maxQty > 1 && !hasSubItems ? `${maxQty}x ${item.name}` : item.name;
+                                                        startEdit(`item-${item.id}`, editStr);
+                                                    } },
+                                                    { separator: true },
+                                                    { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
+                                                    { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
+                                                    { separator: true },
+                                                    { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
+                                                  ]} />
                                               </div>
-                                            ) : (<CheckSquare className="h-6 w-6 md:h-7 md:w-7 text-violet-500" />)}
-                                          </span>
-                                          <div className="flex-1 text-stone-500 line-through decoration-violet-300/50 decoration-2 text-xs md:text-sm font-medium truncate leading-tight">
-                                            {maxQty > 1 ? <span className="font-bold text-violet-600 mr-1">{maxQty}x</span> : null}
-                                            {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
-                                          </div>
+                                            </div>
+                                          )}
                                         </div>
-                                        {!isBulkMode && (
-                                          <div className="relative pl-2 md:pl-2 shrink-0">
-                                            <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-done-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-stone-100 transition-colors"><MoreVertical className="h-5 w-5" /></button>
-                                            <DropdownMenu id={`menu-item-done-${item.id}`} options={[
-                                                { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
-                                                    const editStr = maxQty > 1 ? `${maxQty}x ${item.name}` : item.name;
-                                                    startEdit(`item-${item.id}`, editStr);
-                                                } },
-                                                { separator: true },
-                                                { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
-                                                { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
-                                                { separator: true },
-                                                { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
-                                              ]} />
-                                          </div>
+
+                                        {hasSubItems && isExpanded && !isBulkMode && (
+                                            <div className="bg-stone-100/50 border-t border-stone-200/50 p-2 md:p-3 shadow-inner" onClick={e => e.stopPropagation()}>
+                                               <ul className="space-y-1.5">
+                                                  {item.subItems.map(sub => {
+                                                     const isSubChecked = sub.checked;
+                                                     return (
+                                                       <li key={sub.id} className={`flex items-center justify-between p-2 md:p-2.5 rounded-xl border transition-colors ${isSubChecked ? 'bg-stone-50 border-transparent opacity-80' : 'bg-white border-stone-200 shadow-sm'}`}>
+                                                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                             <span className="cursor-pointer text-stone-300 hover:text-violet-500 transition-colors shrink-0 p-1 -ml-1" onClick={() => toggleSubItem(item.id, sub.id, 'toggle')}>
+                                                                {isSubChecked ? <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-violet-500" /> : <Square className="w-5 h-5 md:w-6 md:h-6" />}
+                                                             </span>
+                                                             <span className={`text-xs md:text-sm font-bold truncate ${isSubChecked ? 'line-through text-stone-400' : 'text-stone-700'}`}>{sub.name}</span>
+                                                          </div>
+                                                          <div className="shrink-0 ml-2">
+                                                             {sub.quantity > 1 ? (
+                                                                <div className="flex items-center gap-1 bg-stone-50 rounded-lg md:rounded-xl p-0.5 md:p-1 border border-stone-200/60 shadow-sm">
+                                                                    <button onClick={() => toggleSubItem(item.id, sub.id, 'decrement')} disabled={sub.checkedQuantity === 0} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Minus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                                    <span className="w-6 md:w-8 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{sub.checkedQuantity}/{sub.quantity}</span>
+                                                                    <button onClick={() => toggleSubItem(item.id, sub.id, 'increment')} disabled={sub.checkedQuantity === sub.quantity} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Plus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                                </div>
+                                                             ) : (
+                                                                <span className="text-[10px] md:text-xs font-bold text-stone-400 bg-stone-50 border border-stone-200 px-2 py-0.5 rounded-md shadow-sm">{sub.quantity}x</span>
+                                                             )}
+                                                          </div>
+                                                       </li>
+                                                     )
+                                                  })}
+                                               </ul>
+                                            </div>
                                         )}
                                       </li>
                                     )
@@ -1136,6 +1321,56 @@
                       {emoji}
                     </button>
                   ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {subItemModal.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})}>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                <div className="p-5 md:p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center shrink-0">
+                  <h3 className="text-lg md:text-xl font-extrabold text-stone-800 truncate">"{subItemModal.item?.name}" aufteilen</h3>
+                  <button onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})} className="p-2 text-stone-400 hover:bg-stone-200 rounded-full transition-colors"><X className="h-5 w-5"/></button>
+                </div>
+                <div className="p-4 md:p-6 overflow-y-auto flex-1">
+                  <div className="space-y-3 md:space-y-4 mb-6">
+                     {subItemModal.subItems.map((sub, idx) => (
+                         <div key={sub.id} className="flex items-center gap-2 md:gap-3 animate-slide-up-open">
+                             <input type="text" value={sub.name} placeholder="Wer/Was? (z.B. Cathrin)" onChange={e => {
+                                 const newSubs = [...subItemModal.subItems];
+                                 newSubs[idx].name = e.target.value;
+                                 setSubItemModal({...subItemModal, subItems: newSubs});
+                             }} className="flex-1 min-w-0 bg-stone-50 border border-stone-200 focus:bg-white focus:border-violet-400 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-sm outline-none transition-all shadow-inner" />
+                             
+                             <div className="flex items-center shrink-0 bg-stone-50 border border-stone-200 rounded-xl shadow-inner px-1 py-0.5">
+                                <button onClick={() => {
+                                    const newSubs = [...subItemModal.subItems];
+                                    newSubs[idx].quantity = Math.max(1, (newSubs[idx].quantity || 1) - 1);
+                                    setSubItemModal({...subItemModal, subItems: newSubs});
+                                }} className="p-2 text-stone-500 hover:text-violet-600 transition-colors"><Minus className="h-3.5 w-3.5 md:h-4 md:w-4"/></button>
+                                <span className="w-5 md:w-7 text-center font-bold text-sm text-stone-700">{sub.quantity}</span>
+                                <button onClick={() => {
+                                    const newSubs = [...subItemModal.subItems];
+                                    newSubs[idx].quantity = (newSubs[idx].quantity || 1) + 1;
+                                    setSubItemModal({...subItemModal, subItems: newSubs});
+                                }} className="p-2 text-stone-500 hover:text-violet-600 transition-colors"><Plus className="h-3.5 w-3.5 md:h-4 md:w-4"/></button>
+                             </div>
+
+                             <button onClick={() => {
+                                 const newSubs = subItemModal.subItems.filter((_, i) => i !== idx);
+                                 setSubItemModal({...subItemModal, subItems: newSubs});
+                             }} className="p-2 md:p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors shrink-0"><Trash2 className="w-4 h-4 md:w-5 md:h-5"/></button>
+                         </div>
+                     ))}
+                  </div>
+                  <button onClick={() => setSubItemModal({...subItemModal, subItems: [...subItemModal.subItems, { id: generateId(), name: '', quantity: 1, checkedQuantity: 0 }]})} className="w-full py-3 md:py-3.5 border-2 border-dashed border-stone-300 text-stone-500 hover:text-violet-600 hover:border-violet-400 hover:bg-violet-50 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm">
+                     <Plus className="w-4 h-4" /> Person / Zuordnung hinzufügen
+                  </button>
+                </div>
+                <div className="p-4 md:p-5 bg-stone-50/80 flex justify-end gap-3 border-t border-stone-100/50 shrink-0">
+                  <button onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
+                  <button onClick={saveSubItems} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
                 </div>
               </div>
             </div>
