@@ -409,7 +409,12 @@
           const validSubItems = subItems.filter(s => s.name.trim() !== '');
           
           if (validSubItems.length === 0) {
-             await setDoc(getDocRef('items', item.id), { subItems: null }, { merge: true });
+             // WICHTIGE KORREKTUR: Wenn alle SubItems gelöscht sind, setze Menge wieder auf 1
+             await setDoc(getDocRef('items', item.id), { 
+                 subItems: null,
+                 quantity: 1, 
+                 checkedQuantity: item.checked ? 1 : 0
+             }, { merge: true });
           } else {
              let totalQty = 0; let totalChecked = 0;
              const updatedSubItems = validSubItems.map(s => {
@@ -1147,7 +1152,7 @@
                                     const isExpanded = expandedItems[item.id];
 
                                     return (
-                                      <li key={`done-${item.id}`} className={`animate-drop-down flex flex-col items-stretch bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 relative ${openMenuId === 'menu-item-done-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
+                                      <li key={`done-${item.id}`} className={`animate-drop-down flex flex-col items-stretch bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 relative overflow-hidden ${openMenuId === 'menu-item-done-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
                                         <div 
                                           className={`flex items-center justify-between p-2.5 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
                                           onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
