@@ -10,9 +10,18 @@
   
   <title>CampPacker Cloud</title>
   
+  <!-- Import Map für React und JSX-Runtime (Löst den Fehler) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime"
+      }
+    }
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
@@ -98,8 +107,9 @@
   </div>
 
   <script type="text/babel" data-type="module">
-    const { useState, useEffect, useMemo } = React;
-
+    // Einheitliche ES-Modul-Importe für React und Firebase
+    import React, { useState, useEffect, useMemo } from "react";
+    import { createRoot } from "react-dom/client";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -672,7 +682,12 @@
         return { total, done, progress };
       };
 
-      if (isLoading) return null; 
+      if (isLoading) return (
+        <div id="loading">
+          <div className="spinner"></div>
+          <div>Verbinde mit der Cloud...</div>
+        </div>
+      ); 
 
       const activeFolder = folders.find(f => f.id === activeFolderId);
       const activeLists = lists.filter(l => l.folderId === activeFolderId);
@@ -752,7 +767,7 @@
               <Tent className="h-6 w-6 text-violet-200 shrink-0" />
               <div className="flex items-center min-w-0">
                 <span className="truncate">{appTitle}</span>
-                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.6.0</span>
+                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.6.1</span>
               </div>
             </div>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/20 rounded transition-colors shrink-0">
@@ -771,7 +786,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.0</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.1</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -881,7 +896,7 @@
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500 bg-white/50 m-4 rounded-3xl shadow-xl border border-white/60 backdrop-blur-sm">
                 <Tent className="h-24 w-24 text-fuchsia-200 mb-6 drop-shadow-md" />
                 <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim CampPacker</h2>
-                <p className="max-w-md mx-auto text-sm mb-8">Deine Cloud-Datenbank ist aktuell noch leer.</p>
+                <p className="max-w-md mx-auto text-sm mb-8">Deine Cloud Datenbank ist aktuell noch leer.</p>
               </div>
             ) : activeFolder ? (
               <>
@@ -1291,14 +1306,14 @@
                 <div className="p-6 border-b border-stone-100/50 bg-stone-50/50"><h3 className="text-xl font-extrabold text-stone-800">{transferModal.action === 'move' ? 'Verschieben nach...' : 'Kopieren nach...'}</h3></div>
                 <div className="p-6 space-y-5">
                   <div>
-                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel-Trip</label>
+                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel Trip</label>
                     <select value={targetFolderId} onChange={(e) => { setTargetFolderId(e.target.value); const folderLists = lists.filter(l => l.folderId === e.target.value); setTargetListId(folderLists.length > 0 ? folderLists[0].id : ''); }} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
                       <option value="" disabled>Bitte wählen...</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
                   </div>
                   {(transferModal.sourceType === 'item' || transferModal.sourceType === 'bulk-items') && targetFolderId && (
                     <div className="animate-slide-in">
-                      <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel-Kategorie</label>
+                      <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel Kategorie</label>
                       <select value={targetListId} onChange={(e) => setTargetListId(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
                         <option value="" disabled>Bitte wählen...</option>{lists.filter(l => l.folderId === targetFolderId).map(l => ( <option key={l.id} value={l.id}>{l.name}</option> ))}
                       </select>
@@ -1387,7 +1402,7 @@
     }
 
     const rootElement = document.getElementById("root");
-    const root = ReactDOM.createRoot(rootElement);
+    const root = createRoot(rootElement);
     root.render(<App />);
   </script>
 </body>
