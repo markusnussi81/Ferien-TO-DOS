@@ -24,23 +24,36 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* MODERNER iOS FIX: dynamische Viewport-Höhe (100dvh) statt position: fixed */
+    /* MODERNER iOS FIX: Nativer Scroll auf Mobile, Fixed auf Desktop (wie in Star Tracker) */
     html, body {
+      background-color: #ede9fe; /* Fallback */
+      background-image: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #fef08a 100%); 
+      width: 100%;
+      min-height: 100vh; /* Erlaubt natürliches Scrollen auf Mobile */
       margin: 0; 
       padding: 0; 
-      width: 100%;
-      height: 100vh; /* Fallback für ältere Browser */
-      height: 100dvh; /* Die magische Einheit für randlose iOS Apps */
-      overflow: hidden;
-      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #fef08a 100%); 
       font-family: 'Inter', sans-serif; 
-      overscroll-behavior: none; /* Verhindert das "Gummi-Bouncing" der ganzen Seite */
+      -webkit-tap-highlight-color: transparent;
     }
     
     #root {
       width: 100%;
-      height: 100%;
+      min-height: 100vh;
       display: flex;
+      align-items: stretch;
+    }
+
+    /* Desktop Fix (App-Verhalten auf großen Bildschirmen bewahren) */
+    @media (min-width: 768px) {
+      html, body {
+        overflow: hidden; 
+        position: fixed;
+        inset: 0;
+      }
+      #root {
+        height: 100%;
+        min-height: 0;
+      }
     }
     
     #splash {
@@ -103,7 +116,7 @@
     <div id="splash">
       <svg class="splash-icon w-24 h-24 mb-6 text-fuchsia-200 drop-shadow-xl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20 10 4"/><path d="m5 20 9-16"/><path d="M3 20h18"/><path d="m12 15-3 5"/><path d="m12 15 3 5"/></svg>
       <h1 class="splash-title text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md mb-3">Holiday Planer</h1>
-      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.11</span>
+      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.12</span>
       <div class="splash-loader flex flex-col items-center gap-3">
         <div class="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
         <div class="text-[10px] font-extrabold text-white/80 tracking-widest uppercase">App wird gestartet...</div>
@@ -258,7 +271,6 @@
 
       const generateId = () => Math.random().toString(36).substr(2, 9);
 
-      // Sichert, dass der Splash Screen mindestens 1,5 Sekunden sichtbar bleibt (App-Feeling)
       useEffect(() => {
         setTimeout(() => setSplashMinTime(true), 1500); 
       }, []);
@@ -339,21 +351,6 @@
         };
         fetchWeather();
       }, [activeFolderId, folders, weatherCache]);
-
-      const getDaysLeft = (dateStr) => {
-        if (!dateStr) return null;
-        const targetDate = new Date(dateStr);
-        const today = new Date();
-        targetDate.setHours(0,0,0,0);
-        today.setHours(0,0,0,0);
-        const diffTime = targetDate - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays > 1) return `${diffDays} Tagen`;
-        if (diffDays === 1) return `Morgen`;
-        if (diffDays === 0) return `Heute`;
-        if (diffDays < 0) return `Vorbei`;
-        return null;
-      };
 
       const openConfirm = (message, onConfirm) => setConfirmDialog({ isOpen: true, message, onConfirm });
       const closeConfirm = () => setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
@@ -496,7 +493,7 @@
         if(!targetItem) return;
         
         if (targetItem.subItems && targetItem.subItems.length > 0) {
-            return; // SubItems verwalten ihre eigene Menge
+            return;
         }
 
         const currentQty = targetItem.quantity || 1;
@@ -598,28 +595,11 @@
         if (e.key === 'Escape') setEditingId(null);
       };
 
-      const handleDateChange = async (folderId, newDate) => {
-        await setDoc(getDocRef('folders', folderId), { date: newDate }, { merge: true });
-      };
-
-      const handleRegionBlur = async (folderId) => {
-        const currentFolder = folders.find(f => f.id === folderId);
-        if (currentFolder && localRegion !== (currentFolder.region || '')) {
-           await setDoc(getDocRef('folders', folderId), { region: localRegion.trim() }, { merge: true });
-        }
-      };
-
       const selectEmoji = async (emoji) => {
          if (iconModal.listId) {
              await setDoc(getDocRef('lists', iconModal.listId), { icon: emoji }, { merge: true });
          }
          setIconModal({ isOpen: false, listId: null });
-      };
-
-      const reactivateAllInFolder = async (folderId) => {
-        const folderListIds = lists.filter(l => l.folderId === folderId).map(l => l.id);
-        const itemsToReactivate = items.filter(i => folderListIds.includes(i.listId) && i.checked);
-        for (let item of itemsToReactivate) await setDoc(getDocRef('items', item.id), { checked: false, checkedQuantity: 0 }, { merge: true });
       };
 
       const executeTransfer = async () => {
@@ -705,7 +685,7 @@
         <div id="splash" className="fixed inset-0 bg-gradient-to-br from-violet-900 via-violet-800 to-fuchsia-600 flex flex-col items-center justify-center text-white z-[9999]">
           <Tent className="w-24 h-24 mb-6 text-fuchsia-200 drop-shadow-xl splash-icon" />
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md mb-3 splash-title">Holiday Planer</h1>
-          <span className="text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold splash-version">v1.6.11</span>
+          <span className="text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold splash-version">v1.6.12</span>
           <div className="flex flex-col items-center gap-3 mt-12 splash-loader">
             <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
             <div className="text-[10px] font-extrabold text-white/80 tracking-widest uppercase">App wird gestartet...</div>
@@ -743,13 +723,13 @@
       };
 
       return (
-        <div className="w-full h-full font-sans text-stone-800 flex flex-row overflow-hidden relative">
+        <div className="w-full flex-1 font-sans text-stone-800 flex flex-row relative">
           
           {/* SIDEBAR (Immer offen auf Desktop, via Menü auf Mobile) */}
           <aside className={`
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
             md:translate-x-0 transition-transform duration-300 ease-in-out
-            fixed md:static top-0 left-0 h-full w-[85%] md:w-80 
+            fixed md:static top-0 left-0 h-[100dvh] md:h-full w-[85%] md:w-80 
             bg-white/95 backdrop-blur-md border-r border-stone-200 shadow-2xl md:shadow-none z-40 flex flex-col
           `}>
             <div className="p-6 bg-gradient-to-br from-violet-800 to-fuchsia-700 text-white hidden md:flex items-center gap-3 shrink-0 shadow-inner">
@@ -757,7 +737,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.11</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.12</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -867,8 +847,8 @@
             </div>
           </aside>
 
-          {/* MOBILE LEFT RAIL (Ersetzt Bottom Bar & Schnellwechsler) */}
-          <nav className="md:hidden w-[4.5rem] shrink-0 h-full overflow-y-auto bg-stone-50/80 backdrop-blur-md border-r border-stone-200/60 flex flex-col items-center py-[max(1rem,env(safe-area-inset-top))] gap-4 z-10 pb-[env(safe-area-inset-bottom)] shadow-sm">
+          {/* MOBILE LEFT RAIL (Nativ scrollend, Sticky fixiert) */}
+          <nav className="md:hidden w-[4.5rem] shrink-0 sticky top-0 h-[100dvh] overflow-y-auto bg-stone-50/80 backdrop-blur-md border-r border-stone-200/60 flex flex-col items-center py-[max(1rem,env(safe-area-inset-top))] gap-4 z-20 pb-[env(safe-area-inset-bottom)] shadow-sm">
             <button onClick={() => setIsSidebarOpen(true)} className="p-3 bg-white text-violet-700 shadow-sm border border-stone-200/60 rounded-2xl hover:bg-violet-50 active:scale-95 transition-all mt-2">
               <Menu className="h-6 w-6" />
             </button>
@@ -904,8 +884,8 @@
             })}
           </nav>
 
-          {/* HAUPTINHALT */}
-          <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-stone-100/30">
+          {/* HAUPTINHALT (Dehnt sich aus und scrollt nativ auf Mobile) */}
+          <main className="flex-1 flex flex-col min-w-0 relative bg-stone-100/30">
             {folders.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500 bg-white/50 m-4 rounded-3xl shadow-xl border border-white/60 backdrop-blur-sm">
                 <Tent className="h-24 w-24 text-fuchsia-200 mb-6 drop-shadow-md" />
@@ -914,7 +894,7 @@
               </div>
             ) : activeFolder ? (
               <>
-                <header className="relative pt-[max(1rem,env(safe-area-inset-top))] pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/80 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8 overflow-hidden">
+                <header className="sticky top-0 pt-[max(1rem,env(safe-area-inset-top))] pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/80 backdrop-blur-md shadow-sm shrink-0 z-30 px-4 md:px-8 overflow-hidden">
                   {weatherCache[activeFolder.region] && typeof weatherCache[activeFolder.region] === 'object' && (
                      <div className="absolute -right-4 -top-8 text-[160px] opacity-30 drop-shadow-2xl pointer-events-none select-none z-0 transform rotate-6 transition-all duration-1000">
                         {weatherCache[activeFolder.region].emoji}
@@ -957,10 +937,10 @@
                   </div>
                 </header>
 
-                <div className="flex-1 flex overflow-hidden relative">
+                <div className="flex-1 flex flex-col relative md:overflow-hidden">
                   
-                  {/* KATEGORIE INHALT (Rechts / Haupt) */}
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative pb-[max(2rem,env(safe-area-inset-bottom))] md:pb-8">
+                  {/* KATEGORIE INHALT */}
+                  <div className="flex-1 p-2 md:p-8 relative md:overflow-y-auto overflow-x-hidden">
                     <div className="w-full max-w-full mx-auto relative h-full min-h-full">
                       {activeList ? (
                         <div key={activeList.id} className="bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-4 relative">
@@ -1275,8 +1255,8 @@
                         </div>
                       )}
                       
-                      {/* Abstandshalter, damit man am Handy bis ganz nach unten scrollen kann */}
-                      <div className="h-40 md:h-0 w-full shrink-0 pointer-events-none"></div>
+                      {/* Abstandshalter, damit man am Handy bis ganz nach unten scrollen kann (Sicherheits-Puffer) */}
+                      <div className="h-40 md:h-12 w-full shrink-0 pointer-events-none"></div>
                     </div>
                   </div>
                 </div>
@@ -1342,7 +1322,7 @@
                   </div>
                 </div>
                 <div className="p-4 md:p-5 bg-stone-50/80 flex justify-between items-center gap-3 border-t border-stone-100/50 shrink-0">
-                  <span className="text-[10px] font-mono text-stone-400 font-bold ml-1">v1.6.11</span>
+                  <span className="text-[10px] font-mono text-stone-400 font-bold ml-1">v1.6.12</span>
                   <div className="flex gap-2">
                     <button onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
                     <button onClick={saveFolderSettings} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
@@ -1352,7 +1332,6 @@
             </div>
           )}
 
-          {/* ... Weitere Modals ... */}
           {transferModal.isOpen && (
             <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setTransferModal({isOpen: false})}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
