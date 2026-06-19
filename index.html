@@ -116,7 +116,7 @@
     <div id="splash">
       <svg class="splash-icon w-24 h-24 mb-6 text-fuchsia-200 drop-shadow-xl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20 10 4"/><path d="m5 20 9-16"/><path d="M3 20h18"/><path d="m12 15-3 5"/><path d="m12 15 3 5"/></svg>
       <h1 class="splash-title text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md mb-3">Holiday Planer</h1>
-      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.12</span>
+      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.13</span>
       <div class="splash-loader flex flex-col items-center gap-3">
         <div class="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
         <div class="text-[10px] font-extrabold text-white/80 tracking-widest uppercase">App wird gestartet...</div>
@@ -737,7 +737,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.12</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.13</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -848,13 +848,13 @@
           </aside>
 
           {/* MOBILE LEFT RAIL (Nativ scrollend, Sticky fixiert) */}
-          <nav className="md:hidden w-[4.5rem] shrink-0 sticky top-0 h-[100dvh] overflow-y-auto bg-stone-50/80 backdrop-blur-md border-r border-stone-200/60 flex flex-col items-center py-[max(1rem,env(safe-area-inset-top))] gap-4 z-20 pb-[env(safe-area-inset-bottom)] shadow-sm">
-            <button onClick={() => setIsSidebarOpen(true)} className="p-3 bg-white text-violet-700 shadow-sm border border-stone-200/60 rounded-2xl hover:bg-violet-50 active:scale-95 transition-all mt-2">
-              <Menu className="h-6 w-6" />
+          <nav className="md:hidden w-[4rem] shrink-0 sticky top-0 h-[100dvh] overflow-y-auto bg-stone-50/80 backdrop-blur-md border-r border-stone-200/60 flex flex-col items-center py-[max(1rem,env(safe-area-inset-top))] gap-3 z-20 pb-[env(safe-area-inset-bottom)] shadow-sm">
+            <button onClick={() => setIsSidebarOpen(true)} className="p-2.5 bg-white text-violet-700 shadow-sm border border-stone-200/60 rounded-xl hover:bg-violet-50 active:scale-95 transition-all mt-2">
+              <Menu className="h-5 w-5" />
             </button>
 
             {activeFolder && activeLists.length > 1 && (
-              <div className="w-8 h-px bg-stone-300/60 rounded-full shrink-0 my-2"></div>
+              <div className="w-6 h-px bg-stone-300/60 rounded-full shrink-0 my-1"></div>
             )}
 
             {activeFolder && activeLists.length > 1 && activeLists.map(list => {
@@ -866,17 +866,17 @@
                 <button
                   key={list.id}
                   onClick={() => setActiveListId(list.id)}
-                  className={`relative p-2.5 rounded-2xl transition-all duration-300 flex items-center justify-center ${
+                  className={`relative p-2 rounded-xl transition-all duration-300 flex items-center justify-center ${
                     isActive
                       ? 'bg-white text-violet-700 shadow-md border border-violet-200 scale-110'
                       : 'bg-transparent text-stone-500 hover:bg-white/50 grayscale opacity-70 hover:opacity-100 hover:grayscale-0'
                   }`}
                   title={list.name}
                 >
-                  <span className="text-2xl">{list.icon || getCategoryEmoji(list.name)}</span>
+                  <span className="text-xl">{list.icon || getCategoryEmoji(list.name)}</span>
                   {isDone && !isActive && (
                     <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
-                      <Check className="w-2.5 h-2.5" />
+                      <Check className="w-2 h-2" />
                     </div>
                   )}
                 </button>
@@ -1322,7 +1322,7 @@
                   </div>
                 </div>
                 <div className="p-4 md:p-5 bg-stone-50/80 flex justify-between items-center gap-3 border-t border-stone-100/50 shrink-0">
-                  <span className="text-[10px] font-mono text-stone-400 font-bold ml-1">v1.6.12</span>
+                  <span className="text-[10px] font-mono text-stone-400 font-bold ml-1">v1.6.13</span>
                   <div className="flex gap-2">
                     <button onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
                     <button onClick={saveFolderSettings} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
