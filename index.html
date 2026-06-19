@@ -8,9 +8,8 @@
   <meta name="theme-color" content="#6d28d9"> 
   <meta name="mobile-web-app-capable" content="yes">
   
-  <title>CampPacker Cloud</title>
+  <title>Holiday Planer</title>
   
-  <!-- Import Map für React und JSX-Runtime -->
   <script type="importmap">
     {
       "imports": {
@@ -42,12 +41,6 @@
     }
     .animate-check { animation: checkPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
     
-    @keyframes slideDownDone {
-      0% { opacity: 0; transform: translateY(-20px) scale(0.98); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .animate-slide-down-done { animation: slideDownDone 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-
     @keyframes slideUpOpen {
       0% { opacity: 0; transform: translateY(20px); }
       100% { opacity: 1; transform: translateY(0); }
@@ -120,7 +113,6 @@
     const CopyIcon = (p) => <IconWrapper {...p}><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></IconWrapper>;
     const ArrowRightLeft = (p) => <IconWrapper {...p}><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></IconWrapper>;
     const Edit2 = (p) => <IconWrapper {...p}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></IconWrapper>;
-    const Clock = (p) => <IconWrapper {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconWrapper>;
     const AlertTriangle = (p) => <IconWrapper {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></IconWrapper>;
     const Cloud = (p) => <IconWrapper {...p}><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></IconWrapper>;
     const ArrowUpDown = (p) => <IconWrapper {...p}><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></IconWrapper>;
@@ -128,6 +120,8 @@
     const Users = (p) => <IconWrapper {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconWrapper>;
     const ChevronDown = (p) => <IconWrapper {...p}><polyline points="6 9 12 15 18 9"/></IconWrapper>;
     const ChevronUp = (p) => <IconWrapper {...p}><polyline points="18 15 12 9 6 15"/></IconWrapper>;
+    const Settings = (p) => <IconWrapper {...p}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconWrapper>;
+    const Star = (p) => <IconWrapper {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></IconWrapper>;
 
     const myFirebaseConfig = {
       apiKey: "AIzaSyBoA1ni-vhIDNlTFhibcagIOJETQD1tYh8",
@@ -174,7 +168,7 @@
       return { quantity, name: name || 'Unbekannt' };
     };
 
-    const EMOJI_OPTIONS = ['📋','💊','🍳','🔌','🪥','👕','⛺','🏖️','🛌','🛂','🛠️','🐕','🚴','🚗','🎒','🧸','📷','🔦','🧴','🧻','🍺','🍷','🥪','🔥','❄️','🌧️','🚿'];
+    const EMOJI_OPTIONS = ['📋','💊','🍳','🔌','🪥','👕','⛺','🏖️','🛌','🛂','🛠️','🐕','🚴','🚗','🎒','🧸','📷','🔦','🧴','🧻','🍺','🍷','🥪','🔥','❄️','🌧️','🚿','🏂','🧗','⛷️','⚽','🍼','👶','🧩','💻','📱','🔋','🎧','💳','💵','🎫','🩹','🚑','💄','🧼','🧰','⛽','🧂','☕','🥣','🍽️'];
 
     const getCategoryEmoji = (name) => {
       if(!name) return '📋';
@@ -203,7 +197,7 @@
       const [activeFolderId, setActiveFolderId] = useState(null);
       const [activeListId, setActiveListId] = useState(null);
       const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-      const [appTitle, setAppTitle] = useState('CampPacker');
+      const [appTitle, setAppTitle] = useState('Holiday Planer');
       
       const [editingId, setEditingId] = useState(null);
       const [editValue, setEditValue] = useState('');
@@ -213,13 +207,14 @@
       const [selectedItemIds, setSelectedItemIds] = useState([]);
       
       const [sortMenuOpen, setSortMenuOpen] = useState(false);
-      const [sortOption, setSortOption] = useState('alpha-asc');
+      const [sortOption, setSortOption] = useState('prio-desc');
 
       const [transferModal, setTransferModal] = useState({ isOpen: false, action: null, sourceType: null, sourceId: null });
       const [targetFolderId, setTargetFolderId] = useState('');
       const [targetListId, setTargetListId] = useState('');
       const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, message: '', onConfirm: null });
       const [iconModal, setIconModal] = useState({ isOpen: false, listId: null });
+      const [editFolderModal, setEditFolderModal] = useState({ isOpen: false, id: null, name: '', date: '', region: '' });
 
       const [newFolderName, setNewFolderName] = useState('');
       const [newListNames, setNewListNames] = useState({});
@@ -319,15 +314,30 @@
         today.setHours(0,0,0,0);
         const diffTime = targetDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays > 1) return `Noch ${diffDays} Tage`;
-        if (diffDays === 1) return `Morgen!`;
-        if (diffDays === 0) return `Heute!`;
+        if (diffDays > 1) return `${diffDays} Tagen`;
+        if (diffDays === 1) return `Morgen`;
+        if (diffDays === 0) return `Heute`;
         if (diffDays < 0) return `Vorbei`;
         return null;
       };
 
       const openConfirm = (message, onConfirm) => setConfirmDialog({ isOpen: true, message, onConfirm });
       const closeConfirm = () => setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
+
+      const openFolderSettings = (folder) => {
+        setEditFolderModal({ isOpen: true, id: folder.id, name: folder.name || '', date: folder.date || '', region: folder.region || '' });
+        setOpenMenuId(null);
+      };
+
+      const saveFolderSettings = async () => {
+        if (!editFolderModal.name.trim()) return;
+        await setDoc(getDocRef('folders', editFolderModal.id), { 
+           name: editFolderModal.name.trim(), 
+           date: editFolderModal.date, 
+           region: editFolderModal.region.trim() 
+        }, { merge: true });
+        setEditFolderModal({ isOpen: false, id: null, name: '', date: '', region: '' });
+      };
 
       const addFolder = async (e) => {
         e.preventDefault();
@@ -372,11 +382,17 @@
         if (!input?.trim()) return;
         const { quantity, name } = parseItemInput(input);
         const newId = generateId();
-        await setDoc(getDocRef('items', newId), { listId, name: name, quantity: quantity, checkedQuantity: 0, checked: false });
+        await setDoc(getDocRef('items', newId), { listId, name: name, quantity: quantity, checkedQuantity: 0, checked: false, priority: false });
         setNewItemNames({ ...newItemNames, [listId]: '' });
       };
 
       const deleteItem = async (itemId) => await deleteDoc(getDocRef('items', itemId));
+      
+      const togglePriority = async (itemId) => {
+          const targetItem = items.find(i => i.id === itemId);
+          if(!targetItem) return;
+          await setDoc(getDocRef('items', itemId), { priority: !targetItem.priority }, { merge: true });
+      };
 
       const toggleExpand = (id) => setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
 
@@ -513,25 +529,20 @@
 
       const saveEdit = async () => {
         if (!editingId) return;
+        const [type, id] = editingId.split('-');
         if (editValue.trim() !== '') {
-          if (editingId.startsWith('app-')) {
-            setAppTitle(editValue.trim()); 
-          } else if (editingId.startsWith('folder-header-')) {
-            const folderId = editingId.replace('folder-header-', '');
+          if (type === 'app') setAppTitle(editValue.trim()); 
+          else if (type === 'folder' || type === 'folder-header') {
+            const folderId = type === 'folder' ? id : editingId.replace('folder-header-', '');
             await setDoc(getDocRef('folders', folderId), { name: editValue.trim() }, { merge: true });
-          } else if (editingId.startsWith('folder-')) {
-            const folderId = editingId.replace('folder-', '');
-            await setDoc(getDocRef('folders', folderId), { name: editValue.trim() }, { merge: true });
-          } else if (editingId.startsWith('list-header-')) {
-            const listId = editingId.replace('list-header-', '');
+          }
+          else if (type === 'list' || type === 'list-header') {
+            const listId = type === 'list' ? id : editingId.replace('list-header-', '');
             await setDoc(getDocRef('lists', listId), { name: editValue.trim() }, { merge: true });
-          } else if (editingId.startsWith('list-')) {
-            const listId = editingId.replace('list-', '');
-            await setDoc(getDocRef('lists', listId), { name: editValue.trim() }, { merge: true });
-          } else if (editingId.startsWith('item-')) {
-            const itemId = editingId.replace('item-', '');
+          }
+          else if (type === 'item') {
             const parsed = parseItemInput(editValue.trim());
-            const targetItem = items.find(i => i.id === itemId);
+            const targetItem = items.find(i => i.id === id);
             if (targetItem) {
                let newQty = parsed.quantity;
                let newCheckedQty = targetItem.checkedQuantity || 0;
@@ -541,7 +552,7 @@
                    if (newCheckedQty > newQty) newCheckedQty = newQty;
                }
                let newChecked = newCheckedQty === newQty;
-               await setDoc(getDocRef('items', itemId), { name: parsed.name, quantity: newQty, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
+               await setDoc(getDocRef('items', id), { name: parsed.name, quantity: newQty, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
             }
           }
         }
@@ -643,12 +654,7 @@
 
       const getProgressColor = (current, max, isChecked) => {
          if (isChecked) return 'bg-stone-50/80 hover:bg-white border-transparent hover:border-stone-200';
-         if (max <= 1 || current === 0) return 'bg-white hover:bg-violet-50/80 border-stone-100 hover:border-violet-200';
-         const ratio = current / max;
-         if (ratio <= 0.25) return 'bg-amber-50 hover:bg-amber-100 border-amber-200 shadow-sm';
-         if (ratio <= 0.50) return 'bg-orange-50 hover:bg-orange-100 border-orange-200 shadow-sm';
-         if (ratio <= 0.75) return 'bg-yellow-100 hover:bg-yellow-200 border-yellow-300 shadow-sm';
-         return 'bg-lime-100 hover:bg-lime-200 border-lime-300 shadow-sm';
+         return 'bg-white hover:border-stone-300 border-stone-100 shadow-sm hover:shadow-md';
       };
 
       const getFolderStats = (folderId) => {
@@ -675,6 +681,12 @@
       
       let sortedCurrentItems = [...currentListItems];
       sortedCurrentItems.sort((a, b) => {
+         if (sortOption === 'prio-desc') {
+             const aPrio = a.priority ? 1 : 0;
+             const bPrio = b.priority ? 1 : 0;
+             if (aPrio !== bPrio) return bPrio - aPrio;
+             return a.name.localeCompare(b.name);
+         }
          if (sortOption === 'alpha-asc') return a.name.localeCompare(b.name);
          if (sortOption === 'alpha-desc') return b.name.localeCompare(a.name);
          if (sortOption === 'qty-asc') return (a.quantity || 1) - (b.quantity || 1);
@@ -692,9 +704,9 @@
       };
 
       return (
-        <div className="h-screen w-full font-sans text-stone-800 flex flex-col md:flex-row overflow-hidden relative">
+        <div className="h-[100dvh] w-full font-sans text-stone-800 flex flex-col md:flex-row overflow-hidden relative">
           
-          {/* SIDEBAR (Immer offen auf Desktop, via Menü auf Mobile) */}
+          {/* SIDEBAR */}
           <aside className={`
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
             md:translate-x-0 transition-transform duration-300 ease-in-out
@@ -706,7 +718,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.2</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.4</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -714,7 +726,7 @@
 
             {/* Mobile Sidebar Header Offset */}
             <div className="md:hidden pt-[max(2rem,env(safe-area-inset-top))] px-6 pb-2 text-violet-800 font-extrabold text-2xl flex items-center gap-2">
-              <Tent className="h-7 w-7" /> CampPacker
+              <Tent className="h-7 w-7" /> Holiday Planer
             </div>
 
             <div className="flex-1 overflow-y-auto p-3 md:p-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
@@ -732,13 +744,13 @@
                         <div onClick={() => { setActiveFolderId(folder.id); if (window.innerWidth < 768 && folderLists.length === 0) setIsSidebarOpen(false); }} className="flex-1 text-left px-4 py-3 flex items-center gap-3 overflow-hidden cursor-pointer">
                           <MapIcon className={`h-5 w-5 flex-shrink-0 transition-colors ${isActiveFolder ? 'text-violet-600' : 'text-stone-400'}`} />
                           <div className={`truncate font-bold flex-1 ${isActiveFolder ? 'text-violet-900' : 'text-stone-600'}`}>
-                            {editingId === `folder-${folder.id}` ? renderInlineInput(`folder-${folder.id}`) : folder.name}
+                            {folder.name}
                           </div>
                         </div>
                         <div className="relative pr-2 shrink-0">
                           <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(`menu-folder-${folder.id}`); }} className="p-2 md:p-1.5 text-stone-400 hover:text-violet-600 rounded-lg hover:bg-white/50 transition-colors"><MoreVertical className="h-5 w-5" /></button>
                           <DropdownMenu id={`menu-folder-${folder.id}`} options={[
-                              { label: 'Umbenennen', icon: <Edit2 className="h-4 w-4"/>, action: () => startEdit(`folder-${folder.id}`, folder.name) },
+                              { label: 'Bearbeiten', icon: <Settings className="h-4 w-4"/>, action: () => openFolderSettings(folder) },
                               { separator: true },
                               { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteFolder(folder.id), danger: true }
                             ]} />
@@ -821,67 +833,51 @@
             {folders.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500 bg-white/50 m-4 rounded-3xl shadow-xl border border-white/60 backdrop-blur-sm">
                 <Tent className="h-24 w-24 text-fuchsia-200 mb-6 drop-shadow-md" />
-                <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim CampPacker</h2>
+                <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim Holiday Planer</h2>
                 <p className="max-w-md mx-auto text-sm mb-8">Deine Cloud Datenbank ist aktuell noch leer.</p>
               </div>
             ) : activeFolder ? (
               <>
-                <header className="pt-[max(1rem,env(safe-area-inset-top))] pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/80 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8">
-                  <div className="w-full max-w-full mx-auto flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
+                <header className="relative pt-[max(1rem,env(safe-area-inset-top))] pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/80 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8 overflow-hidden">
+                  {weatherCache[activeFolder.region] && typeof weatherCache[activeFolder.region] === 'object' && (
+                     <div className="absolute -right-4 -top-8 text-[160px] opacity-30 drop-shadow-2xl pointer-events-none select-none z-0 transform rotate-6 transition-all duration-1000">
+                        {weatherCache[activeFolder.region].emoji}
+                     </div>
+                  )}
+
+                  <div className="w-full max-w-full mx-auto flex items-center justify-between gap-3 md:gap-4 relative z-10">
                     
-                    <div className="flex-1 min-w-0 w-full">
-                      <div className="flex items-center gap-2 md:gap-3 flex-wrap mb-2.5">
-                         <h2 className="text-2xl md:text-3xl font-extrabold text-stone-800 drop-shadow-sm flex items-center flex-wrap gap-2 flex-1 min-w-0">
-                            {editingId === `folder-header-${activeFolder.id}` ? (
-                               <div className="w-full max-w-xs">{renderInlineInput(`folder-header-${activeFolder.id}`)}</div>
-                            ) : (
-                               <>
-                                  <span className="truncate max-w-full">{activeFolder.name}</span>
-                                  <button onClick={() => startEdit(`folder-header-${activeFolder.id}`, activeFolder.name)} className="p-1.5 text-stone-400 hover:text-violet-600 transition-colors" title="Reise umbenennen"><Edit2 className="h-4 w-4 md:h-5 md:w-5" /></button>
-                               </>
-                            )}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <div className="flex items-center gap-2 md:gap-3 mb-1.5">
+                         <h2 className="text-2xl md:text-3xl font-extrabold text-stone-800 drop-shadow-sm truncate">
+                            {activeFolder.name}
                          </h2>
+                         <button onClick={() => openFolderSettings(activeFolder)} className="p-2 text-stone-400 hover:text-violet-600 bg-white/50 hover:bg-white rounded-full transition-all shadow-sm border border-stone-200/50 shrink-0" title="Reise bearbeiten">
+                            <Settings className="h-5 w-5 md:h-6 md:w-6" />
+                         </button>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm font-medium">
-                         <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 shadow-sm text-stone-600 font-bold" title="Erledigt / Gesamt">
-                            <CheckSquare className="h-3.5 w-3.5 text-violet-500" />
-                            <span>{activeStats.done} / {activeStats.total}</span>
+                      <div className="flex items-center gap-3">
+                         <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 shadow-sm text-stone-600 font-bold text-xs md:text-sm" title="Erledigt / Gesamt">
+                            <CheckSquare className="h-4 w-4 text-violet-500" />
+                            <span>{activeStats.done} / {activeStats.total} abgehakt</span>
                          </div>
-                         
-                         {getDaysLeft(activeFolder.date) && (
-                            <div className="flex items-center gap-1.5 bg-violet-100 text-violet-800 px-2.5 py-1.5 rounded-lg shadow-sm font-bold">
-                               <Clock className="h-3.5 w-3.5"/> <span>{getDaysLeft(activeFolder.date)}</span>
-                            </div>
-                         )}
-                         
-                         <div className="date-wrapper flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 shadow-sm hover:border-violet-300 transition-colors group">
-                            <CalendarDays className="h-3.5 w-3.5 text-violet-500" />
-                            <span className="text-stone-600 group-hover:text-violet-700 transition-colors">{activeFolder.date ? new Date(activeFolder.date).toLocaleDateString('de-DE') : 'Datum wählen'}</span>
-                            <input type="date" value={activeFolder.date || ''} onChange={(e) => handleDateChange(activeFolder.id, e.target.value)} className="date-input-native" />
-                         </div>
-                         
-                         <div className="flex items-center gap-1.5 bg-white px-2.5 py-1.5 rounded-lg border border-stone-200 shadow-sm hover:border-violet-300 transition-colors">
-                            <MapPin className="h-3.5 w-3.5 text-violet-500" />
-                            <input type="text" placeholder="Ort eingeben" value={localRegion} onChange={(e) => setLocalRegion(e.target.value)} onBlur={() => handleRegionBlur(activeFolder.id)} onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }} className="bg-transparent border-none outline-none text-stone-600 placeholder:text-stone-400 w-[90px] md:w-[130px]" />
-                         </div>
-                         
-                         {weatherCache[activeFolder.region] && typeof weatherCache[activeFolder.region] === 'object' && (
-                            <div className="flex items-center gap-1.5 bg-gradient-to-r from-sky-50 to-indigo-50 text-indigo-700 px-2.5 py-1.5 rounded-lg border border-indigo-100 shadow-sm">
-                               <span className="text-base leading-none">{weatherCache[activeFolder.region].emoji}</span>
-                               <span className="font-bold">{weatherCache[activeFolder.region].temp}°C</span>
-                            </div>
-                         )}
                       </div>
                     </div>
 
-                    {activeStats.progress > 0 && (
-                      <div className="mt-2 md:mt-0">
-                         <button onClick={() => reactivateAllInFolder(activeFolder.id)} className="w-full md:w-auto text-[11px] md:text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-2 text-stone-500 hover:text-stone-800 bg-white hover:bg-stone-50 px-4 py-2 md:py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md border border-stone-200 shrink-0">
-                            <RotateCcw className="h-3.5 w-3.5 md:h-4 md:w-4" /> Trip Reaktivieren
-                         </button>
-                      </div>
-                    )}
+                    <div className="flex flex-col items-end shrink-0 gap-2">
+                       {weatherCache[activeFolder.region] && typeof weatherCache[activeFolder.region] === 'object' && (
+                          <div className="text-3xl md:text-4xl font-black text-stone-700 drop-shadow-sm leading-none mr-2">
+                             {weatherCache[activeFolder.region].temp}°
+                          </div>
+                       )}
+                       
+                       {activeStats.progress > 0 && (
+                          <button onClick={() => reactivateAllInFolder(activeFolder.id)} className="text-[10px] md:text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 text-stone-500 hover:text-stone-800 bg-white/80 backdrop-blur hover:bg-stone-50 px-3 py-1.5 rounded-xl transition-all shadow-sm hover:shadow-md border border-stone-200">
+                             <RotateCcw className="h-3 w-3 md:h-3.5 md:w-3.5" /> <span className="hidden md:inline">Reaktivieren</span>
+                          </button>
+                       )}
+                    </div>
                   </div>
                 </header>
 
@@ -919,7 +915,7 @@
                   )}
 
                   {/* KATEGORIE INHALT (Rechts / Haupt) */}
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative pb-[calc(8rem+env(safe-area-inset-bottom))] md:pb-8">
                     <div className="w-full max-w-full mx-auto relative h-full min-h-full">
                       {activeList ? (
                         <div key={activeList.id} className="bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-4 relative">
@@ -949,6 +945,8 @@
                                         </button>
                                         {sortMenuOpen && (
                                           <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-stone-200 py-1 z-50">
+                                            <button onClick={() => { setSortOption('prio-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'prio-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>Wichtigkeit</button>
+                                            <div className="h-px bg-stone-100 my-1 w-full" />
                                             <button onClick={() => { setSortOption('alpha-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-asc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>A-Z (Name)</button>
                                             <button onClick={() => { setSortOption('alpha-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>Z-A (Name)</button>
                                             <div className="h-px bg-stone-100 my-1 w-full" />
@@ -989,17 +987,22 @@
                                   const currentItemBg = getProgressColor(currentQty, maxQty, item.checked);
                                   const hasSubItems = item.subItems && item.subItems.length > 0;
                                   const isExpanded = expandedItems[item.id];
+                                  
+                                  const showProgressBar = maxQty > 1 || hasSubItems;
+                                  const progressRatio = maxQty > 0 ? (currentQty / maxQty) : 0;
+                                  const progressHue = progressRatio * 120;
+                                  const barColor = `hsl(${progressHue}, 85%, 45%)`;
 
                                   return (
-                                    <li key={`open-${item.id}`} className={`animate-slide-up-open group flex flex-col items-stretch rounded-xl md:rounded-2xl transition-all duration-300 border relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
+                                    <li key={`open-${item.id}`} className={`animate-slide-up-open group flex flex-col items-stretch rounded-xl md:rounded-2xl transition-all duration-300 border relative overflow-hidden ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50 overflow-visible' : 'z-10'}`}>
                                       <div 
-                                        className={`flex items-center justify-between p-2 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
+                                        className={`flex items-center justify-between p-2 md:p-3.5 w-full relative z-10 ${hasSubItems ? 'cursor-pointer' : ''}`}
                                         onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
                                       >
                                         <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`}>
                                           <span className="flex-shrink-0 transition-colors cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
                                             {isBulkMode ? (
-                                              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${selectedItemIds.includes(item.id) ? 'bg-violet-600 border-violet-600 shadow-md shadow-violet-200' : 'border-stone-300 bg-stone-100 hover:border-violet-400'}`}>
+                                              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${selectedItemIds.includes(item.id) ? 'bg-violet-600 border-violet-600 shadow-md shadow-violet-200' : 'border-stone-300 bg-stone-50 hover:border-violet-400'}`}>
                                                 {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" strokeWidth="3" />}
                                               </div>
                                             ) : (
@@ -1007,6 +1010,7 @@
                                             )}
                                           </span>
                                           <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-700 font-semibold text-xs md:text-sm leading-tight">
+                                            {item.priority && <Star className="w-4 h-4 text-orange-500 fill-orange-500 shrink-0 drop-shadow-sm" />}
                                             <span className="truncate">{editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}</span>
                                             {hasSubItems && (
                                               <span className="bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded md:rounded-md text-[9px] uppercase tracking-wider font-bold shrink-0 shadow-sm border border-violet-200/50">
@@ -1016,9 +1020,9 @@
                                           </div>
                                         </div>
                                         
-                                        <div className="flex items-center shrink-0 ml-2">
+                                        <div className="flex items-center shrink-0 ml-2 relative z-10">
                                           {hasSubItems && !isBulkMode && (
-                                              <div className="mr-1 text-stone-400 p-1 bg-white/50 rounded-lg group-hover:bg-white group-hover:text-violet-500 transition-colors">
+                                              <div className="mr-1 text-stone-400 p-1 bg-stone-50 rounded-lg group-hover:bg-white group-hover:text-violet-500 transition-colors">
                                                   {isExpanded ? <ChevronUp className="w-5 h-5 md:w-6 md:h-6"/> : <ChevronDown className="w-5 h-5 md:w-6 md:h-6"/>}
                                               </div>
                                           )}
@@ -1050,10 +1054,11 @@
                                                   </div>
                                               )}
                                               <div className="relative">
-                                                <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-white transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-stone-50 transition-colors"><MoreVertical className="h-5 w-5" /></button>
                                                 <DropdownMenu id={`menu-item-${item.id}`} options={[
-                                                    { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
+                                                    { label: item.priority ? 'Priorität normal' : 'Priorität hoch', icon: <Star className={`h-4 w-4 ${item.priority ? 'text-stone-400' : 'text-orange-500 fill-orange-500'}`}/>, action: () => togglePriority(item.id) },
                                                     { separator: true },
+                                                    { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
                                                     { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
                                                         const editStr = maxQty > 1 && !hasSubItems ? `${maxQty}x ${item.name}` : item.name;
                                                         startEdit(`item-${item.id}`, editStr);
@@ -1071,7 +1076,7 @@
                                       </div>
                                       
                                       {hasSubItems && isExpanded && !isBulkMode && (
-                                          <div className="bg-stone-50/80 border-t border-stone-200/50 p-2 md:p-3 shadow-inner" onClick={e => e.stopPropagation()}>
+                                          <div className="bg-stone-50/90 border-t border-stone-200/50 p-2 md:p-3 shadow-inner relative z-10" onClick={e => e.stopPropagation()}>
                                              <ul className="space-y-1.5">
                                                 {item.subItems.map(sub => {
                                                    const isSubChecked = sub.checked;
@@ -1099,6 +1104,12 @@
                                                 })}
                                              </ul>
                                           </div>
+                                      )}
+                                      
+                                      {showProgressBar && !isBulkMode && currentQty > 0 && (
+                                         <div className="absolute bottom-0 left-0 w-full h-1.5 bg-stone-100 opacity-80 z-0">
+                                            <div className="h-full transition-all duration-500 ease-out" style={{ width: `${progressRatio * 100}%`, backgroundColor: barColor }} />
+                                         </div>
                                       )}
                                     </li>
                                   )
@@ -1132,6 +1143,7 @@
                                                 ) : (<CheckSquare className="h-6 w-6 md:h-7 md:w-7 text-violet-500" />)}
                                               </span>
                                               <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-500 line-through decoration-violet-300/50 decoration-2 text-xs md:text-sm font-medium leading-tight">
+                                                {item.priority && <Star className="w-3.5 h-3.5 text-stone-400 fill-stone-300 shrink-0" />}
                                                 <span className="truncate">
                                                   {maxQty > 1 && !hasSubItems ? <span className="font-bold text-violet-600 mr-1">{maxQty}x</span> : null}
                                                   {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
@@ -1154,8 +1166,9 @@
                                                 <div className="relative pl-1 md:pl-2">
                                                   <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-done-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-stone-100 transition-colors"><MoreVertical className="h-5 w-5" /></button>
                                                   <DropdownMenu id={`menu-item-done-${item.id}`} options={[
-                                                      { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
+                                                      { label: item.priority ? 'Priorität normal' : 'Priorität hoch', icon: <Star className={`h-4 w-4 ${item.priority ? 'text-stone-400' : 'text-orange-500 fill-orange-500'}`}/>, action: () => togglePriority(item.id) },
                                                       { separator: true },
+                                                      { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
                                                       { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
                                                           const editStr = maxQty > 1 && !hasSubItems ? `${maxQty}x ${item.name}` : item.name;
                                                           startEdit(`item-${item.id}`, editStr);
@@ -1216,14 +1229,17 @@
                           <p className="text-sm text-stone-500">Wähle links eine Liste aus oder erstelle eine neue.</p>
                         </div>
                       )}
+                      
+                      {/* Abstandshalter, damit man am Handy bis ganz nach unten scrollen kann */}
+                      <div className="h-48 md:h-0 w-full shrink-0 pointer-events-none"></div>
                     </div>
                   </div>
                 </div>
                 
                 {isBulkMode && selectedItemIds.length > 0 && (
                   <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 md:left-80 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 p-4 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-50 flex justify-center gap-3 flex-wrap">
-                     <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><ArrowRightLeft className="h-4 w-4"/> Verschieben ({selectedItemIds.length})</button>
-                     <button onClick={() => openTransferModal('copy', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><CopyIcon className="h-4 w-4"/> Kopieren</button>
+                     <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><ArrowRightLeft className="h-4 w-4"/> Verschieben in ({selectedItemIds.length})</button>
+                     <button onClick={() => openTransferModal('copy', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><CopyIcon className="h-4 w-4"/> Kopieren in</button>
                      <button onClick={executeBulkDelete} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all shadow-sm hover:shadow"><Trash2 className="h-4 w-4"/> Löschen</button>
                   </div>
                 )}
@@ -1231,7 +1247,7 @@
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500 bg-white/50 m-4 rounded-3xl shadow-xl border border-white/60 backdrop-blur-sm">
                 <Tent className="h-24 w-24 text-fuchsia-200 mb-6 drop-shadow-md" />
-                <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim CampPacker</h2>
+                <h2 className="text-2xl font-bold text-stone-700 mb-2">Willkommen beim Holiday Planer</h2>
                 <p className="max-w-md mx-auto text-sm mb-4">Wähle links einen Trip an, um zu starten.</p>
               </div>
             )}
@@ -1251,113 +1267,36 @@
             </div>
           )}
 
-          {/* MODALS */}
-          {confirmDialog.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={closeConfirm}>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-stone-100" onClick={e => e.stopPropagation()}>
-                <div className="p-8">
-                  <div className="flex items-center gap-3 text-violet-500 mb-4"><AlertTriangle className="h-8 w-8" /><h3 className="text-xl font-extrabold text-stone-800">Sicher?</h3></div>
-                  <p className="text-stone-600 mb-8 font-medium leading-relaxed">{confirmDialog.message}</p>
-                  <div className="flex justify-end gap-3">
-                    <button onClick={closeConfirm} className="px-5 py-3 md:py-2.5 text-stone-500 font-bold hover:bg-stone-100 rounded-xl transition-colors">Abbrechen</button>
-                    <button onClick={() => { if(confirmDialog.onConfirm) confirmDialog.onConfirm(); closeConfirm(); }} className="px-5 py-3 md:py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Ja, ausführen</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {transferModal.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setTransferModal({isOpen: false})}>
+          {editFolderModal.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-stone-100/50 bg-stone-50/50"><h3 className="text-xl font-extrabold text-stone-800">{transferModal.action === 'move' ? 'Verschieben nach...' : 'Kopieren nach...'}</h3></div>
-                <div className="p-6 space-y-5">
-                  <div>
-                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel Trip</label>
-                    <select value={targetFolderId} onChange={(e) => { setTargetFolderId(e.target.value); const folderLists = lists.filter(l => l.folderId === e.target.value); setTargetListId(folderLists.length > 0 ? folderLists[0].id : ''); }} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
-                      <option value="" disabled>Bitte wählen...</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                    </select>
-                  </div>
-                  {(transferModal.sourceType === 'item' || transferModal.sourceType === 'bulk-items') && targetFolderId && (
-                    <div className="animate-slide-in">
-                      <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel Kategorie</label>
-                      <select value={targetListId} onChange={(e) => setTargetListId(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
-                        <option value="" disabled>Bitte wählen...</option>{lists.filter(l => l.folderId === targetFolderId).map(l => ( <option key={l.id} value={l.id}>{l.name}</option> ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-                <div className="p-5 bg-stone-50/80 flex justify-end gap-3 border-t border-stone-100/50">
-                  <button onClick={() => setTransferModal({isOpen: false})} className="px-5 py-3 md:py-2.5 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
-                  <button onClick={executeTransfer} disabled={transferModal.sourceType !== 'list' && !targetListId} className="px-5 py-3 md:py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">Ausführen</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {iconModal.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setIconModal({ isOpen: false, listId: null })}>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center">
-                  <h3 className="text-xl font-extrabold text-stone-800">Icon auswählen</h3>
-                  <button onClick={() => setIconModal({ isOpen: false, listId: null })} className="p-2 text-stone-400 hover:bg-stone-200 rounded-full transition-colors"><X className="h-5 w-5"/></button>
-                </div>
-                <div className="p-6 grid grid-cols-5 md:grid-cols-6 gap-3">
-                  {EMOJI_OPTIONS.map(emoji => (
-                    <button key={emoji} onClick={() => selectEmoji(emoji)} className="text-3xl p-2 hover:bg-violet-100 rounded-xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center">
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {subItemModal.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})}>
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <div className="p-5 md:p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center shrink-0">
-                  <h3 className="text-lg md:text-xl font-extrabold text-stone-800 truncate">"{subItemModal.item?.name}" aufteilen</h3>
-                  <button onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})} className="p-2 text-stone-400 hover:bg-stone-200 rounded-full transition-colors"><X className="h-5 w-5"/></button>
+                  <h3 className="text-lg md:text-xl font-extrabold text-stone-800 flex items-center gap-2"><Settings className="w-5 h-5 text-violet-500"/> Trip bearbeiten</h3>
+                  <button onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})} className="p-2 text-stone-400 hover:bg-stone-200 rounded-full transition-colors"><X className="h-5 w-5"/></button>
                 </div>
-                <div className="p-4 md:p-6 overflow-y-auto flex-1">
-                  <div className="space-y-3 md:space-y-4 mb-6">
-                     {subItemModal.subItems.map((sub, idx) => (
-                         <div key={sub.id} className="flex items-center gap-2 md:gap-3 animate-slide-up-open">
-                             <input type="text" value={sub.name} placeholder="Wer/Was? (z.B. Cathrin)" onChange={e => {
-                                 const newSubs = [...subItemModal.subItems];
-                                 newSubs[idx].name = e.target.value;
-                                 setSubItemModal({...subItemModal, subItems: newSubs});
-                             }} className="flex-1 min-w-0 bg-stone-50 border border-stone-200 focus:bg-white focus:border-violet-400 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-sm outline-none transition-all shadow-inner" />
-                             
-                             <div className="flex items-center shrink-0 bg-stone-50 border border-stone-200 rounded-xl shadow-inner px-1 py-0.5">
-                                <button onClick={() => {
-                                    const newSubs = [...subItemModal.subItems];
-                                    newSubs[idx].quantity = Math.max(1, (newSubs[idx].quantity || 1) - 1);
-                                    setSubItemModal({...subItemModal, subItems: newSubs});
-                                }} className="p-2 text-stone-500 hover:text-violet-600 transition-colors"><Minus className="h-3.5 w-3.5 md:h-4 md:w-4"/></button>
-                                <span className="w-5 md:w-7 text-center font-bold text-sm text-stone-700">{sub.quantity}</span>
-                                <button onClick={() => {
-                                    const newSubs = [...subItemModal.subItems];
-                                    newSubs[idx].quantity = (newSubs[idx].quantity || 1) + 1;
-                                    setSubItemModal({...subItemModal, subItems: newSubs});
-                                }} className="p-2 text-stone-500 hover:text-violet-600 transition-colors"><Plus className="h-3.5 w-3.5 md:h-4 md:w-4"/></button>
-                             </div>
-
-                             <button onClick={() => {
-                                 const newSubs = subItemModal.subItems.filter((_, i) => i !== idx);
-                                 setSubItemModal({...subItemModal, subItems: newSubs});
-                             }} className="p-2 md:p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors shrink-0"><Trash2 className="w-4 h-4 md:w-5 md:h-5"/></button>
-                         </div>
-                     ))}
+                <div className="p-5 md:p-6 space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-1.5">Name der Reise</label>
+                    <input autoFocus type="text" value={editFolderModal.name} onChange={e => setEditFolderModal({...editFolderModal, name: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 outline-none transition-all shadow-inner text-stone-800 font-bold" />
                   </div>
-                  <button onClick={() => setSubItemModal({...subItemModal, subItems: [...subItemModal.subItems, { id: generateId(), name: '', quantity: 1, checkedQuantity: 0 }]})} className="w-full py-3 md:py-3.5 border-2 border-dashed border-stone-300 text-stone-500 hover:text-violet-600 hover:border-violet-400 hover:bg-violet-50 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm">
-                     <Plus className="w-4 h-4" /> Person / Zuordnung hinzufügen
-                  </button>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-1.5">Datum (Optional)</label>
+                    <div className="relative">
+                      <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      <input type="date" value={editFolderModal.date} onChange={e => setEditFolderModal({...editFolderModal, date: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 outline-none transition-all shadow-inner text-stone-800" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-1.5">Ort fürs Wetter (Optional)</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                      <input type="text" placeholder="z.B. Paris, Berlin..." value={editFolderModal.region} onChange={e => setEditFolderModal({...editFolderModal, region: e.target.value})} className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 outline-none transition-all shadow-inner text-stone-800" />
+                    </div>
+                  </div>
                 </div>
                 <div className="p-4 md:p-5 bg-stone-50/80 flex justify-end gap-3 border-t border-stone-100/50 shrink-0">
-                  <button onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
-                  <button onClick={saveSubItems} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
+                  <button onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
+                  <button onClick={saveFolderSettings} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
                 </div>
               </div>
             </div>
