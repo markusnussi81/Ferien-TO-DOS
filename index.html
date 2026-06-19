@@ -24,18 +24,17 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* KUGELSICHERER iOS FIX: Festtackern der Root-Elemente an die Bildschirmränder */
+    /* MODERNER iOS FIX: dynamische Viewport-Höhe (100dvh) statt position: fixed */
     html, body {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
       margin: 0; 
       padding: 0; 
+      width: 100%;
+      height: 100vh; /* Fallback für ältere Browser */
+      height: 100dvh; /* Die magische Einheit für randlose iOS Apps */
       overflow: hidden;
       background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #fef08a 100%); 
       font-family: 'Inter', sans-serif; 
+      overscroll-behavior: none; /* Verhindert das "Gummi-Bouncing" der ganzen Seite */
     }
     
     #root {
