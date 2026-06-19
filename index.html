@@ -24,22 +24,21 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    /* iOS White Bar Fix: Festes Einspannen von HTML und BODY auf 100dvh */
-    html, body {
+    /* iOS White Bar Fix: Body auf fixed, Gradient auf HTML */
+    html {
+      height: 100%;
+      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #fef08a 100%); 
+    }
+    
+    body { 
       width: 100%;
       height: 100%;
-      height: 100dvh;
       margin: 0; 
       padding: 0; 
       overflow: hidden;
       position: fixed;
-      background-color: #ede9fe; /* Fallback-Farbe für die Safe-Area */
-    }
-    
-    body { 
-      background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #fef08a 100%); 
       font-family: 'Inter', sans-serif; 
-      inset: 0;
+      background: transparent;
     }
     
     #splash {
@@ -102,7 +101,7 @@
     <div id="splash">
       <svg class="splash-icon w-24 h-24 mb-6 text-fuchsia-200 drop-shadow-xl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20 10 4"/><path d="m5 20 9-16"/><path d="M3 20h18"/><path d="m12 15-3 5"/><path d="m12 15 3 5"/></svg>
       <h1 class="splash-title text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md mb-3">Holiday Planer</h1>
-      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.8</span>
+      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.9</span>
       <div class="splash-loader flex flex-col items-center gap-3">
         <div class="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
         <div class="text-[10px] font-extrabold text-white/80 tracking-widest uppercase">App wird gestartet...</div>
@@ -756,7 +755,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.8</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.9</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -1341,7 +1340,7 @@
                   </div>
                 </div>
                 <div className="p-4 md:p-5 bg-stone-50/80 flex justify-between items-center gap-3 border-t border-stone-100/50 shrink-0">
-                  <span className="text-[10px] font-mono text-stone-400 font-bold ml-1">v1.6.8</span>
+                  <span className="text-[10px] font-mono text-stone-400 font-bold ml-1">v1.6.9</span>
                   <div className="flex gap-2">
                     <button onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
                     <button onClick={saveFolderSettings} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
