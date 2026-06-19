@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#6d28d9"> 
@@ -10,7 +10,7 @@
   
   <title>CampPacker Cloud</title>
   
-  <!-- Import Map für React und JSX-Runtime (Löst den Fehler) -->
+  <!-- Import Map für React und JSX-Runtime -->
   <script type="importmap">
     {
       "imports": {
@@ -66,18 +66,6 @@
     }
     .animate-slide-in { animation: slideIn 0.3s ease-out forwards; }
 
-    /* --- SWIPE ANIMATIONS --- */
-    @keyframes swipeNext {
-      0% { opacity: 0; transform: translateX(100px); }
-      100% { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes swipePrev {
-      0% { opacity: 0; transform: translateX(-100px); }
-      100% { opacity: 1; transform: translateX(0); }
-    }
-    .animate-swipe-next { animation: swipeNext 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
-    .animate-swipe-prev { animation: swipePrev 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
-
     /* --- DER iOS KALENDER HACK (Kugelsicher) --- */
     .date-wrapper { position: relative; display: flex; align-items: center; overflow: hidden; }
     .date-input-native {
@@ -94,8 +82,6 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-    
-    .touch-pan-y { touch-action: pan-y; }
   </style>
 </head>
 <body>
@@ -107,7 +93,6 @@
   </div>
 
   <script type="text/babel" data-type="module">
-    // Einheitliche ES-Modul-Importe für React und Firebase
     import React, { useState, useEffect, useMemo } from "react";
     import { createRoot } from "react-dom/client";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -160,7 +145,7 @@
     const getCol = (name) => collection(db, 'artifacts', appId, 'public', 'data', name);
     const getDocRef = (name, id) => doc(db, 'artifacts', appId, 'public', 'data', name, id);
 
-    // SMARTE MENGEN-ERKENNUNG (Zahlen anywhere im Text)
+    // SMARTE MENGEN-ERKENNUNG
     const parseItemInput = (input) => {
       let quantity = 1;
       let name = input.trim();
@@ -213,7 +198,6 @@
       const [lists, setLists] = useState([]);
       const [items, setItems] = useState([]);
       const [isLoading, setIsLoading] = useState(true);
-      const [isUploading, setIsUploading] = useState(false);
       const [animatingItems, setAnimatingItems] = useState({});
 
       const [activeFolderId, setActiveFolderId] = useState(null);
@@ -247,11 +231,6 @@
       
       const [expandedItems, setExpandedItems] = useState({});
       const [subItemModal, setSubItemModal] = useState({ isOpen: false, item: null, subItems: [] });
-
-      // Real-time Swipe State
-      const [touchStart, setTouchStart] = useState(null);
-      const [swipeOffset, setSwipeOffset] = useState(0);
-      const [swipeDirection, setSwipeDirection] = useState(''); 
 
       const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -350,10 +329,6 @@
       const openConfirm = (message, onConfirm) => setConfirmDialog({ isOpen: true, message, onConfirm });
       const closeConfirm = () => setConfirmDialog({ isOpen: false, message: '', onConfirm: null });
 
-      const loadDefaultsToCloud = async () => {
-        alert("Bitte lege manuell Ordner an, der Demo-Datensatz ist in dieser Vorschau gekürzt.");
-      };
-
       const addFolder = async (e) => {
         e.preventDefault();
         if (!newFolderName.trim()) return;
@@ -419,7 +394,6 @@
           const validSubItems = subItems.filter(s => s.name.trim() !== '');
           
           if (validSubItems.length === 0) {
-             // WICHTIGE KORREKTUR: Wenn alle SubItems gelöscht sind, setze Menge wieder auf 1
              await setDoc(getDocRef('items', item.id), { 
                  subItems: null,
                  quantity: 1, 
@@ -539,20 +513,25 @@
 
       const saveEdit = async () => {
         if (!editingId) return;
-        const [type, id] = editingId.split('-');
         if (editValue.trim() !== '') {
-          if (type === 'app') setAppTitle(editValue.trim()); 
-          else if (type === 'folder' || type === 'folder-header') {
-            const folderId = type === 'folder' ? id : editingId.replace('folder-header-', '');
+          if (editingId.startsWith('app-')) {
+            setAppTitle(editValue.trim()); 
+          } else if (editingId.startsWith('folder-header-')) {
+            const folderId = editingId.replace('folder-header-', '');
             await setDoc(getDocRef('folders', folderId), { name: editValue.trim() }, { merge: true });
-          }
-          else if (type === 'list' || type === 'list-header') {
-            const listId = type === 'list' ? id : editingId.replace('list-header-', '');
+          } else if (editingId.startsWith('folder-')) {
+            const folderId = editingId.replace('folder-', '');
+            await setDoc(getDocRef('folders', folderId), { name: editValue.trim() }, { merge: true });
+          } else if (editingId.startsWith('list-header-')) {
+            const listId = editingId.replace('list-header-', '');
             await setDoc(getDocRef('lists', listId), { name: editValue.trim() }, { merge: true });
-          }
-          else if (type === 'item') {
+          } else if (editingId.startsWith('list-')) {
+            const listId = editingId.replace('list-', '');
+            await setDoc(getDocRef('lists', listId), { name: editValue.trim() }, { merge: true });
+          } else if (editingId.startsWith('item-')) {
+            const itemId = editingId.replace('item-', '');
             const parsed = parseItemInput(editValue.trim());
-            const targetItem = items.find(i => i.id === id);
+            const targetItem = items.find(i => i.id === itemId);
             if (targetItem) {
                let newQty = parsed.quantity;
                let newCheckedQty = targetItem.checkedQuantity || 0;
@@ -562,7 +541,7 @@
                    if (newCheckedQty > newQty) newCheckedQty = newQty;
                }
                let newChecked = newCheckedQty === newQty;
-               await setDoc(getDocRef('items', id), { name: parsed.name, quantity: newQty, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
+               await setDoc(getDocRef('items', itemId), { name: parsed.name, quantity: newQty, checkedQuantity: newCheckedQty, checked: newChecked }, { merge: true });
             }
           }
         }
@@ -712,87 +691,33 @@
          else setSelectedItemIds(currentListItems.map(i => i.id)); 
       };
 
-      const handleTouchStart = (e) => {
-        setTouchStart({ x: e.targetTouches[0].clientX, y: e.targetTouches[0].clientY });
-        setSwipeOffset(0);
-      };
-
-      const handleTouchMove = (e) => {
-        if (!touchStart || activeLists.length <= 1) return;
-        const currentX = e.targetTouches[0].clientX;
-        const currentY = e.targetTouches[0].clientY;
-        const deltaX = currentX - touchStart.x;
-        const deltaY = currentY - touchStart.y;
-        
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-          const currentIndex = activeLists.findIndex(l => l.id === activeListId);
-          if ((currentIndex === 0 && deltaX > 0) || (currentIndex === activeLists.length - 1 && deltaX < 0)) {
-            setSwipeOffset(deltaX * 0.25); 
-          } else {
-            setSwipeOffset(deltaX);
-          }
-        } else if (Math.abs(deltaY) > Math.abs(deltaX)) {
-          setSwipeOffset(0);
-        }
-      };
-
-      const handleTouchEnd = () => {
-        if (!touchStart || activeLists.length <= 1) {
-          setSwipeOffset(0);
-          return;
-        }
-        const threshold = 60; 
-        if (swipeOffset < -threshold) { 
-          const currentIndex = activeLists.findIndex(l => l.id === activeListId);
-          if (currentIndex < activeLists.length - 1) {
-            setSwipeDirection('next');
-            setActiveListId(activeLists[currentIndex + 1].id);
-          }
-        } else if (swipeOffset > threshold) {
-          const currentIndex = activeLists.findIndex(l => l.id === activeListId);
-          if (currentIndex > 0) {
-            setSwipeDirection('prev');
-            setActiveListId(activeLists[currentIndex - 1].id);
-          }
-        }
-        setTouchStart(null);
-        setSwipeOffset(0);
-      };
-
       return (
         <div className="h-screen w-full font-sans text-stone-800 flex flex-col md:flex-row overflow-hidden relative">
           
-          <div className="md:hidden bg-gradient-to-r from-violet-700 to-fuchsia-600 text-white p-3 md:p-4 flex justify-between items-center shadow-lg z-20 shrink-0">
-            <div className="flex items-center gap-2 font-bold text-lg md:text-xl flex-1 cursor-pointer">
-              <Tent className="h-6 w-6 text-violet-200 shrink-0" />
-              <div className="flex items-center min-w-0">
-                <span className="truncate">{appTitle}</span>
-                <span className="text-[9px] md:text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-sm">v1.6.1</span>
-              </div>
-            </div>
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 hover:bg-white/20 rounded transition-colors shrink-0">
-              {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
-
+          {/* SIDEBAR (Immer offen auf Desktop, via Menü auf Mobile) */}
           <aside className={`
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
             md:translate-x-0 transition-transform duration-300 ease-in-out
             fixed md:static top-0 left-0 h-full w-[85%] md:w-80 
-            bg-white/95 backdrop-blur-md border-r border-stone-200 shadow-2xl md:shadow-none z-30 flex flex-col
+            bg-white/95 backdrop-blur-md border-r border-stone-200 shadow-2xl md:shadow-none z-40 flex flex-col
           `}>
             <div className="p-6 bg-gradient-to-br from-violet-800 to-fuchsia-700 text-white hidden md:flex items-center gap-3 shrink-0 shadow-inner">
               <TreePine className="h-8 w-8 text-violet-200 flex-shrink-0 drop-shadow-md" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.1</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.2</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 md:p-4 pb-24">
+            {/* Mobile Sidebar Header Offset */}
+            <div className="md:hidden pt-[max(2rem,env(safe-area-inset-top))] px-6 pb-2 text-violet-800 font-extrabold text-2xl flex items-center gap-2">
+              <Tent className="h-7 w-7" /> CampPacker
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 md:p-4 pb-[calc(6rem+env(safe-area-inset-bottom))]">
               <h2 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 md:mb-4 px-2">Geplante Reisen</h2>
               <ul className="space-y-3">
                 {folders.map(folder => {
@@ -833,7 +758,7 @@
                               const isActiveList = activeListId === list.id;
                               return (
                                 <div key={list.id} className={`group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all duration-200 ${isActiveList ? 'bg-white shadow-sm border border-violet-100/50' : 'hover:bg-white/50 text-stone-600'}`}>
-                                  <div className="flex items-center gap-2.5 flex-1 overflow-hidden" onClick={() => { setActiveListId(list.id); setSwipeDirection(''); if (window.innerWidth < 768) setIsSidebarOpen(false); }}>
+                                  <div className="flex items-center gap-2.5 flex-1 overflow-hidden" onClick={() => { setActiveListId(list.id); if (window.innerWidth < 768) setIsSidebarOpen(false); }}>
                                     <span className="text-base flex-shrink-0 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
                                         {list.icon || getCategoryEmoji(list.name)}
                                     </span>
@@ -881,7 +806,7 @@
               {folders.length === 0 && <div className="text-center p-6 text-stone-400 text-sm">Noch keine Trips in deiner Cloud.</div>}
             </div>
 
-            <div className="p-4 bg-white/90 backdrop-blur-md border-t border-stone-100 shrink-0 pb-8 md:pb-4">
+            <div className="p-4 bg-white/90 backdrop-blur-md border-t border-stone-100 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4">
               <form onSubmit={addFolder}>
                 <div className="relative group">
                   <input type="text" placeholder="Neuen Trip anlegen..." value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-4 pr-10 text-sm focus:bg-white focus:ring-2 focus:ring-violet-500/50 outline-none transition-all placeholder:text-stone-400 shadow-sm" />
@@ -891,7 +816,8 @@
             </div>
           </aside>
 
-          <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+          {/* HAUPTINHALT */}
+          <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-stone-100/30">
             {folders.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-500 bg-white/50 m-4 rounded-3xl shadow-xl border border-white/60 backdrop-blur-sm">
                 <Tent className="h-24 w-24 text-fuchsia-200 mb-6 drop-shadow-md" />
@@ -900,7 +826,7 @@
               </div>
             ) : activeFolder ? (
               <>
-                <header className="pt-4 pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/60 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8">
+                <header className="pt-[max(1rem,env(safe-area-inset-top))] pb-4 md:pt-6 md:pb-6 border-b border-stone-200/50 bg-white/80 backdrop-blur-md shadow-sm flex-shrink-0 z-10 px-4 md:px-8">
                   <div className="w-full max-w-full mx-auto flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4">
                     
                     <div className="flex-1 min-w-0 w-full">
@@ -959,250 +885,173 @@
                   </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative">
-                  <div className="w-full max-w-full mx-auto relative h-full min-h-full">
-                    {activeList ? (
-                      <div key={activeList.id}
-                           className={`bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-24 relative touch-pan-y ${swipeDirection === 'next' ? 'animate-swipe-next' : swipeDirection === 'prev' ? 'animate-swipe-prev' : ''}`}
-                           style={{ 
-                             transform: swipeOffset !== 0 ? `translateX(${swipeOffset}px)` : 'translateX(0)',
-                             transition: swipeOffset === 0 ? 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)' : 'none'
-                           }}
-                           onTouchStart={handleTouchStart} 
-                           onTouchMove={handleTouchMove} 
-                           onTouchEnd={handleTouchEnd}
-                      >
-                           
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl md:rounded-3xl">
-                            <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-violet-100/50 to-fuchsia-100/50 rounded-full blur-3xl"></div>
-                        </div>
+                <div className="flex-1 flex overflow-hidden relative">
+                  
+                  {/* MOBILE KATEGORIE SCHNELLWECHSLER (Links) */}
+                  {activeLists.length > 1 && (
+                    <div className="md:hidden w-14 shrink-0 overflow-y-auto bg-stone-50/60 backdrop-blur-md border-r border-stone-200/60 flex flex-col items-center py-4 gap-4 z-10 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+                      {activeLists.map(list => {
+                        const isActive = activeListId === list.id;
+                        const listItems = items.filter(i => i.listId === list.id);
+                        const isDone = listItems.length > 0 && listItems.every(i => i.checked);
 
-                        <div className="relative z-10">
-                            
-                            <div className="flex items-center justify-between mb-4 md:mb-6 w-full gap-2">
-                              <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-                                <div className="bg-violet-100/80 p-2 md:p-2.5 rounded-xl md:rounded-2xl shadow-sm text-xl md:text-2xl flex items-center justify-center transform -rotate-3 cursor-pointer hover:bg-violet-200 transition-colors shrink-0" onClick={() => setIconModal({ isOpen: true, listId: activeList.id })} title="Icon ändern">
-                                  {activeList.icon || getCategoryEmoji(activeList.name)}
-                                </div>
-                                <h3 className="text-lg md:text-2xl font-extrabold text-stone-800 flex-1 cursor-pointer hover:text-violet-700 transition-colors drop-shadow-sm truncate min-w-[100px]" onClick={() => startEdit(`list-header-${activeList.id}`, activeList.name)}>
-                                   {editingId === `list-header-${activeList.id}` ? renderInlineInput(`list-header-${activeList.id}`) : activeList.name}
-                                </h3>
+                        return (
+                          <button
+                            key={list.id}
+                            onClick={() => setActiveListId(list.id)}
+                            className={`relative p-2.5 rounded-2xl transition-all duration-300 flex items-center justify-center ${
+                              isActive
+                                ? 'bg-white text-violet-700 shadow-md border border-violet-200 scale-110'
+                                : 'bg-transparent text-stone-500 hover:bg-white/50 grayscale opacity-70 hover:opacity-100 hover:grayscale-0'
+                            }`}
+                            title={list.name}
+                          >
+                            <span className="text-xl">{list.icon || getCategoryEmoji(list.name)}</span>
+                            {isDone && !isActive && (
+                              <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
+                                <Check className="w-2.5 h-2.5" />
                               </div>
-                              
-                              {(openItems.length > 0 || doneItems.length > 0) && (
-                                <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-                                  {!isBulkMode && (
-                                    <div className="relative">
-                                      <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(!sortMenuOpen); setOpenMenuId(null); }} className="text-[10px] md:text-xs px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm bg-stone-50 text-stone-600 hover:bg-stone-100 border border-stone-200 uppercase tracking-wide">
-                                        <ArrowUpDown className="h-3 w-3"/><span className="hidden sm:inline">Sortieren</span>
-                                      </button>
-                                      {sortMenuOpen && (
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-stone-200 py-1 z-50">
-                                          <button onClick={() => { setSortOption('alpha-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-asc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>A-Z (Name)</button>
-                                          <button onClick={() => { setSortOption('alpha-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>Z-A (Name)</button>
-                                          <div className="h-px bg-stone-100 my-1 w-full" />
-                                          <button onClick={() => { setSortOption('qty-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'qty-asc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>1-9 (Menge)</button>
-                                          <button onClick={() => { setSortOption('qty-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'qty-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>9-1 (Menge)</button>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {isBulkMode && (
-                                    <button onClick={handleSelectAll} className="text-[10px] md:text-xs px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 uppercase tracking-wide">
-                                      <CheckSquare className="h-3 w-3"/> {selectedItemIds.length === currentListItems.length ? 'Keine' : 'Alle'}
-                                    </button>
-                                  )}
-
-                                  <button onClick={() => { setIsBulkMode(!isBulkMode); setSelectedItemIds([]); }} className={`text-[10px] md:text-xs px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm uppercase tracking-wide ${isBulkMode ? 'bg-violet-500 text-white shadow-violet-200' : 'bg-stone-50 text-stone-600 hover:bg-stone-100 border border-stone-200'}`}>
-                                    <Edit2 className="h-3 w-3"/> {isBulkMode ? 'Fertig' : <span className="hidden sm:inline">Mehrere</span>}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-
-                            {!isBulkMode && (
-                              <form onSubmit={(e) => addItem(e, activeList.id)} className="mb-6 md:mb-8 relative z-0">
-                                <div className="relative shadow-sm md:shadow-md hover:shadow-lg transition-shadow rounded-xl md:rounded-2xl group">
-                                  <input type="text" placeholder={`Eingabe (z.B. "Handtücher 2" oder "Zelt")`} value={newItemNames[activeList.id] || ''} onChange={(e) => setNewItemNames({ ...newItemNames, [activeList.id]: e.target.value })} className="w-full bg-white border border-stone-200 rounded-xl md:rounded-2xl py-3.5 md:py-4 pl-4 md:pl-5 pr-12 md:pr-14 text-sm md:text-base focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all placeholder:text-stone-400" />
-                                  <button type="submit" className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 text-white bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 p-2 rounded-lg md:rounded-xl transition-all shadow-sm md:shadow-md transform group-focus-within:scale-110 active:scale-95"><Plus className="h-5 w-5 md:h-6 md:w-6" /></button>
-                                </div>
-                              </form>
                             )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                            <ul className="space-y-2 md:space-y-2.5 mb-6 md:mb-8">
-                              {openItems.map(item => {
-                                const maxQty = item.quantity || 1;
-                                const currentQty = item.checkedQuantity !== undefined ? item.checkedQuantity : 0;
-                                const isAnimating = animatingItems[item.id];
-                                const currentItemBg = getProgressColor(currentQty, maxQty, item.checked);
-                                const hasSubItems = item.subItems && item.subItems.length > 0;
-                                const isExpanded = expandedItems[item.id];
+                  {/* KATEGORIE INHALT (Rechts / Haupt) */}
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8">
+                    <div className="w-full max-w-full mx-auto relative h-full min-h-full">
+                      {activeList ? (
+                        <div key={activeList.id} className="bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-4 relative">
+                              
+                          <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-2xl md:rounded-3xl">
+                              <div className="absolute -top-32 -right-32 w-96 h-96 bg-gradient-to-br from-violet-100/50 to-fuchsia-100/50 rounded-full blur-3xl"></div>
+                          </div>
 
-                                return (
-                                  <li key={`open-${item.id}`} className={`animate-slide-up-open group flex flex-col items-stretch rounded-xl md:rounded-2xl transition-all duration-300 border relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
-                                    <div 
-                                      className={`flex items-center justify-between p-2 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
-                                      onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
-                                    >
-                                      <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`}>
-                                        <span className="flex-shrink-0 transition-colors cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
+                          <div className="relative z-10">
+                              
+                              <div className="flex items-center justify-between mb-4 md:mb-6 w-full gap-2">
+                                <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                                  <div className="bg-violet-100/80 p-2 md:p-2.5 rounded-xl md:rounded-2xl shadow-sm text-xl md:text-2xl flex items-center justify-center transform -rotate-3 cursor-pointer hover:bg-violet-200 transition-colors shrink-0" onClick={() => setIconModal({ isOpen: true, listId: activeList.id })} title="Icon ändern">
+                                    {activeList.icon || getCategoryEmoji(activeList.name)}
+                                  </div>
+                                  <h3 className="text-lg md:text-2xl font-extrabold text-stone-800 flex-1 cursor-pointer hover:text-violet-700 transition-colors drop-shadow-sm truncate min-w-[100px]" onClick={() => startEdit(`list-header-${activeList.id}`, activeList.name)}>
+                                      {editingId === `list-header-${activeList.id}` ? renderInlineInput(`list-header-${activeList.id}`) : activeList.name}
+                                  </h3>
+                                </div>
+                                
+                                {(openItems.length > 0 || doneItems.length > 0) && (
+                                  <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+                                    {!isBulkMode && (
+                                      <div className="relative">
+                                        <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(!sortMenuOpen); setOpenMenuId(null); }} className="text-[10px] md:text-xs px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm bg-stone-50 text-stone-600 hover:bg-stone-100 border border-stone-200 uppercase tracking-wide">
+                                          <ArrowUpDown className="h-3 w-3"/><span className="hidden sm:inline">Sortieren</span>
+                                        </button>
+                                        {sortMenuOpen && (
+                                          <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-stone-200 py-1 z-50">
+                                            <button onClick={() => { setSortOption('alpha-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-asc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>A-Z (Name)</button>
+                                            <button onClick={() => { setSortOption('alpha-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'alpha-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>Z-A (Name)</button>
+                                            <div className="h-px bg-stone-100 my-1 w-full" />
+                                            <button onClick={() => { setSortOption('qty-asc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'qty-asc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>1-9 (Menge)</button>
+                                            <button onClick={() => { setSortOption('qty-desc'); setSortMenuOpen(false); }} className={`w-full text-left px-4 py-3 md:py-2 text-sm transition-colors ${sortOption === 'qty-desc' ? 'text-violet-600 font-bold bg-violet-50' : 'text-stone-700 hover:bg-stone-50'}`}>9-1 (Menge)</button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {isBulkMode && (
+                                      <button onClick={handleSelectAll} className="text-[10px] md:text-xs px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-200 uppercase tracking-wide">
+                                        <CheckSquare className="h-3 w-3"/> {selectedItemIds.length === currentListItems.length ? 'Keine' : 'Alle'}
+                                      </button>
+                                    )}
+
+                                    <button onClick={() => { setIsBulkMode(!isBulkMode); setSelectedItemIds([]); }} className={`text-[10px] md:text-xs px-2 md:px-3 py-1.5 md:py-2 rounded-lg font-bold flex items-center gap-1 transition-all shadow-sm uppercase tracking-wide ${isBulkMode ? 'bg-violet-500 text-white shadow-violet-200' : 'bg-stone-50 text-stone-600 hover:bg-stone-100 border border-stone-200'}`}>
+                                      <Edit2 className="h-3 w-3"/> {isBulkMode ? 'Fertig' : <span className="hidden sm:inline">Mehrere</span>}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {!isBulkMode && (
+                                <form onSubmit={(e) => addItem(e, activeList.id)} className="mb-6 md:mb-8 relative z-0">
+                                  <div className="relative shadow-sm md:shadow-md hover:shadow-lg transition-shadow rounded-xl md:rounded-2xl group">
+                                    <input type="text" placeholder={`Eingabe (z.B. "Handtücher 2" oder "Zelt")`} value={newItemNames[activeList.id] || ''} onChange={(e) => setNewItemNames({ ...newItemNames, [activeList.id]: e.target.value })} className="w-full bg-white border border-stone-200 rounded-xl md:rounded-2xl py-3.5 md:py-4 pl-4 md:pl-5 pr-12 md:pr-14 text-sm md:text-base focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all placeholder:text-stone-400" />
+                                    <button type="submit" className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 text-white bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 p-2 rounded-lg md:rounded-xl transition-all shadow-sm md:shadow-md transform group-focus-within:scale-110 active:scale-95"><Plus className="h-5 w-5 md:h-6 md:w-6" /></button>
+                                  </div>
+                                </form>
+                              )}
+
+                              <ul className="space-y-2 md:space-y-2.5 mb-6 md:mb-8">
+                                {openItems.map(item => {
+                                  const maxQty = item.quantity || 1;
+                                  const currentQty = item.checkedQuantity !== undefined ? item.checkedQuantity : 0;
+                                  const isAnimating = animatingItems[item.id];
+                                  const currentItemBg = getProgressColor(currentQty, maxQty, item.checked);
+                                  const hasSubItems = item.subItems && item.subItems.length > 0;
+                                  const isExpanded = expandedItems[item.id];
+
+                                  return (
+                                    <li key={`open-${item.id}`} className={`animate-slide-up-open group flex flex-col items-stretch rounded-xl md:rounded-2xl transition-all duration-300 border relative ${currentItemBg} ${openMenuId === 'menu-item-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
+                                      <div 
+                                        className={`flex items-center justify-between p-2 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
+                                        onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
+                                      >
+                                        <div className={`flex items-center gap-3 md:gap-4 flex-1 min-w-0 ${isBulkMode ? 'px-2 py-2' : 'p-1'}`}>
+                                          <span className="flex-shrink-0 transition-colors cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
+                                            {isBulkMode ? (
+                                              <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${selectedItemIds.includes(item.id) ? 'bg-violet-600 border-violet-600 shadow-md shadow-violet-200' : 'border-stone-300 bg-stone-100 hover:border-violet-400'}`}>
+                                                {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" strokeWidth="3" />}
+                                              </div>
+                                            ) : (
+                                              <Square className={`h-6 w-6 md:h-7 md:w-7 text-stone-300 hover:text-violet-500 transition-colors ${isAnimating ? 'animate-check text-violet-500' : ''}`} />
+                                            )}
+                                          </span>
+                                          <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-700 font-semibold text-xs md:text-sm leading-tight">
+                                            <span className="truncate">{editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}</span>
+                                            {hasSubItems && (
+                                              <span className="bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded md:rounded-md text-[9px] uppercase tracking-wider font-bold shrink-0 shadow-sm border border-violet-200/50">
+                                                {item.subItems.length} Pers.
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="flex items-center shrink-0 ml-2">
+                                          {hasSubItems && !isBulkMode && (
+                                              <div className="mr-1 text-stone-400 p-1 bg-white/50 rounded-lg group-hover:bg-white group-hover:text-violet-500 transition-colors">
+                                                  {isExpanded ? <ChevronUp className="w-5 h-5 md:w-6 md:h-6"/> : <ChevronDown className="w-5 h-5 md:w-6 md:h-6"/>}
+                                              </div>
+                                          )}
+                                          
                                           {isBulkMode ? (
-                                            <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500 shadow-md shadow-violet-200' : 'border-stone-300 bg-white'}`}>
-                                              {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
+                                            <div className="flex items-stretch ml-1 gap-1 bg-white/50 p-1 rounded-xl shadow-sm border border-stone-200/50">
+                                               <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, -1); }} className="bg-red-50 hover:bg-red-500 text-red-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-red-100 hover:border-red-500 active:scale-95">
+                                                  <Minus className="h-5 w-5 md:h-6 md:w-6"/>
+                                               </button>
+                                               <div className="flex items-center justify-center bg-white px-4 md:px-5 font-black text-stone-700 text-lg md:text-xl rounded-lg shadow-inner min-w-[3rem]">
+                                                  {maxQty}
+                                               </div>
+                                               <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, 1); }} className="bg-emerald-50 hover:bg-emerald-500 text-emerald-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-emerald-100 hover:border-emerald-500 active:scale-95">
+                                                  <Plus className="h-5 w-5 md:h-6 md:w-6"/>
+                                               </button>
                                             </div>
                                           ) : (
-                                            <Square className={`h-6 w-6 md:h-7 md:w-7 text-stone-300 hover:text-violet-500 transition-colors ${isAnimating ? 'animate-check text-violet-500' : ''}`} />
-                                          )}
-                                        </span>
-                                        <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-700 font-semibold text-xs md:text-sm leading-tight">
-                                          <span className="truncate">{editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}</span>
-                                          {hasSubItems && (
-                                            <span className="bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded md:rounded-md text-[9px] uppercase tracking-wider font-bold shrink-0 shadow-sm border border-violet-200/50">
-                                              {item.subItems.length} Pers.
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="flex items-center shrink-0 ml-2">
-                                        {hasSubItems && !isBulkMode && (
-                                            <div className="mr-1 text-stone-400 p-1 bg-white/50 rounded-lg group-hover:bg-white group-hover:text-violet-500 transition-colors">
-                                                {isExpanded ? <ChevronUp className="w-5 h-5 md:w-6 md:h-6"/> : <ChevronDown className="w-5 h-5 md:w-6 md:h-6"/>}
-                                            </div>
-                                        )}
-                                        
-                                        {isBulkMode ? (
-                                          <div className="flex items-stretch ml-1 gap-1 bg-white/50 p-1 rounded-xl shadow-sm border border-stone-200/50">
-                                             <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, -1); }} className="bg-red-50 hover:bg-red-500 text-red-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-red-100 hover:border-red-500 active:scale-95">
-                                                <Minus className="h-5 w-5 md:h-6 md:w-6"/>
-                                             </button>
-                                             <div className="flex items-center justify-center bg-white px-4 md:px-5 font-black text-stone-700 text-lg md:text-xl rounded-lg shadow-inner min-w-[3rem]">
-                                                {maxQty}
-                                             </div>
-                                             <button onClick={(e) => { e.stopPropagation(); updateItemQuantity(item.id, 1); }} className="bg-emerald-50 hover:bg-emerald-500 text-emerald-500 hover:text-white px-4 md:px-5 flex items-center justify-center rounded-lg font-bold transition-colors shadow-sm border border-emerald-100 hover:border-emerald-500 active:scale-95">
-                                                <Plus className="h-5 w-5 md:h-6 md:w-6"/>
-                                             </button>
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center gap-1 md:gap-2">
-                                            {!hasSubItems && maxQty > 1 && (
-                                              <div className="flex items-center gap-1.5 md:gap-2 bg-white/90 rounded-xl md:rounded-2xl p-1 shadow-sm border border-stone-200/60" onClick={e => e.stopPropagation()}>
-                                                <button onClick={() => toggleItem(item.id, 'decrement')} disabled={currentQty === 0} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 disabled:opacity-30 transition-all active:scale-90"><Minus className="h-4 w-4 md:h-5 md:w-5"/></button>
-                                                <span className="w-8 md:w-10 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{currentQty}/{maxQty}</span>
-                                                <button onClick={() => toggleItem(item.id, 'increment')} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 transition-all active:scale-90"><Plus className="h-4 w-4 md:h-5 md:w-5"/></button>
-                                              </div>
-                                            )}
-                                            {hasSubItems && maxQty > 1 && (
-                                                <div className="px-2 md:px-3 py-1.5 bg-white/80 rounded-xl border border-stone-200/60 text-[10px] md:text-xs font-extrabold text-violet-700 shadow-sm" onClick={e => e.stopPropagation()}>
-                                                    {currentQty}/{maxQty}
+                                            <div className="flex items-center gap-1 md:gap-2">
+                                              {!hasSubItems && maxQty > 1 && (
+                                                <div className="flex items-center gap-1.5 md:gap-2 bg-white/90 rounded-xl md:rounded-2xl p-1 shadow-sm border border-stone-200/60" onClick={e => e.stopPropagation()}>
+                                                  <button onClick={() => toggleItem(item.id, 'decrement')} disabled={currentQty === 0} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 disabled:opacity-30 transition-all active:scale-90"><Minus className="h-4 w-4 md:h-5 md:w-5"/></button>
+                                                  <span className="w-8 md:w-10 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{currentQty}/{maxQty}</span>
+                                                  <button onClick={() => toggleItem(item.id, 'increment')} className="p-1.5 md:p-2 bg-stone-50 hover:bg-stone-100 rounded-lg md:rounded-xl text-stone-600 transition-all active:scale-90"><Plus className="h-4 w-4 md:h-5 md:w-5"/></button>
                                                 </div>
-                                            )}
-                                            <div className="relative">
-                                              <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-white transition-colors"><MoreVertical className="h-5 w-5" /></button>
-                                              <DropdownMenu id={`menu-item-${item.id}`} options={[
-                                                  { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
-                                                  { separator: true },
-                                                  { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
-                                                      const editStr = maxQty > 1 && !hasSubItems ? `${maxQty}x ${item.name}` : item.name;
-                                                      startEdit(`item-${item.id}`, editStr);
-                                                  } },
-                                                  { separator: true },
-                                                  { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
-                                                  { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
-                                                  { separator: true },
-                                                  { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
-                                                ]} />
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    
-                                    {hasSubItems && isExpanded && !isBulkMode && (
-                                        <div className="bg-stone-50/80 border-t border-stone-200/50 p-2 md:p-3 shadow-inner" onClick={e => e.stopPropagation()}>
-                                           <ul className="space-y-1.5">
-                                              {item.subItems.map(sub => {
-                                                 const isSubChecked = sub.checked;
-                                                 return (
-                                                   <li key={sub.id} className={`flex items-center justify-between p-2 md:p-2.5 rounded-xl border transition-colors ${isSubChecked ? 'bg-stone-100/50 border-transparent opacity-70' : 'bg-white border-stone-200 shadow-sm'}`}>
-                                                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                         <span className="cursor-pointer text-stone-300 hover:text-violet-500 transition-colors shrink-0 p-1 -ml-1" onClick={() => toggleSubItem(item.id, sub.id, 'toggle')}>
-                                                            {isSubChecked ? <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-violet-500" /> : <Square className="w-5 h-5 md:w-6 md:h-6" />}
-                                                         </span>
-                                                         <span className={`text-xs md:text-sm font-bold truncate ${isSubChecked ? 'line-through text-stone-400' : 'text-stone-700'}`}>{sub.name}</span>
-                                                      </div>
-                                                      <div className="shrink-0 ml-2">
-                                                         {sub.quantity > 1 ? (
-                                                            <div className="flex items-center gap-1 bg-stone-50 rounded-lg md:rounded-xl p-0.5 md:p-1 border border-stone-200/60 shadow-sm">
-                                                                <button onClick={() => toggleSubItem(item.id, sub.id, 'decrement')} disabled={sub.checkedQuantity === 0} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Minus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
-                                                                <span className="w-6 md:w-8 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{sub.checkedQuantity}/{sub.quantity}</span>
-                                                                <button onClick={() => toggleSubItem(item.id, sub.id, 'increment')} disabled={sub.checkedQuantity === sub.quantity} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Plus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
-                                                            </div>
-                                                         ) : (
-                                                            <span className="text-[10px] md:text-xs font-bold text-stone-500 bg-white border border-stone-200 px-2 py-0.5 rounded-md shadow-sm">{sub.quantity}x</span>
-                                                         )}
-                                                      </div>
-                                                   </li>
-                                                 )
-                                              })}
-                                           </ul>
-                                        </div>
-                                    )}
-                                  </li>
-                                )
-                              })}
-                              {openItems.length === 0 && doneItems.length === 0 && (<div className="text-center py-12 text-stone-400 font-medium bg-stone-50/50 rounded-2xl border border-dashed border-stone-200">Noch nichts zu packen!</div>)}
-                            </ul>
-
-                            {doneItems.length > 0 && (
-                              <div className="mt-6 md:mt-10 pt-4 md:pt-6 border-t border-stone-200/50 relative">
-                                <h4 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 md:mb-4 px-2 flex items-center gap-2">
-                                  Erledigt <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{doneItems.length}</span>
-                                </h4>
-                                <ul className="space-y-2 md:space-y-2.5 opacity-80 hover:opacity-100 transition-opacity duration-500">
-                                  {doneItems.map(item => {
-                                    const maxQty = item.quantity || 1;
-                                    const hasSubItems = item.subItems && item.subItems.length > 0;
-                                    const isExpanded = expandedItems[item.id];
-
-                                    return (
-                                      <li key={`done-${item.id}`} className={`animate-drop-down flex flex-col items-stretch bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 relative overflow-hidden ${openMenuId === 'menu-item-done-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
-                                        <div 
-                                          className={`flex items-center justify-between p-2.5 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
-                                          onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
-                                        >
-                                          <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                                            <span className="flex-shrink-0 cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
-                                              {isBulkMode ? (
-                                                <div className={`w-6 h-6 md:w-7 md:h-7 rounded-lg border-2 flex items-center justify-center transition-all ${selectedItemIds.includes(item.id) ? 'bg-violet-500 border-violet-500' : 'border-stone-300 bg-white'}`}>
-                                                  {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" />}
-                                                </div>
-                                              ) : (<CheckSquare className="h-6 w-6 md:h-7 md:w-7 text-violet-500" />)}
-                                            </span>
-                                            <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-500 line-through decoration-violet-300/50 decoration-2 text-xs md:text-sm font-medium leading-tight">
-                                              <span className="truncate">
-                                                {maxQty > 1 && !hasSubItems ? <span className="font-bold text-violet-600 mr-1">{maxQty}x</span> : null}
-                                                {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
-                                              </span>
-                                              {hasSubItems && (
-                                                <span className="bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded md:rounded-md text-[9px] uppercase tracking-wider font-bold shrink-0 no-underline decoration-transparent">
-                                                  {item.subItems.length} Pers.
-                                                </span>
                                               )}
-                                            </div>
-                                          </div>
-                                          
-                                          {!isBulkMode && (
-                                            <div className="flex items-center shrink-0 ml-2">
-                                              {hasSubItems && (
-                                                  <div className="mr-1 text-stone-400 p-1 bg-stone-100 rounded-lg group-hover:bg-stone-200 group-hover:text-violet-600 transition-colors">
-                                                      {isExpanded ? <ChevronUp className="w-5 h-5 md:w-6 md:h-6"/> : <ChevronDown className="w-5 h-5 md:w-6 md:h-6"/>}
+                                              {hasSubItems && maxQty > 1 && (
+                                                  <div className="px-2 md:px-3 py-1.5 bg-white/80 rounded-xl border border-stone-200/60 text-[10px] md:text-xs font-extrabold text-violet-700 shadow-sm" onClick={e => e.stopPropagation()}>
+                                                      {currentQty}/{maxQty}
                                                   </div>
                                               )}
-                                              <div className="relative pl-1 md:pl-2">
-                                                <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-done-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-stone-100 transition-colors"><MoreVertical className="h-5 w-5" /></button>
-                                                <DropdownMenu id={`menu-item-done-${item.id}`} options={[
+                                              <div className="relative">
+                                                <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-white transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                                                <DropdownMenu id={`menu-item-${item.id}`} options={[
                                                     { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
                                                     { separator: true },
                                                     { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
@@ -1214,62 +1063,165 @@
                                                     { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
                                                     { separator: true },
                                                     { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
-                                                  ]} />
+                                                ]} />
                                               </div>
                                             </div>
                                           )}
                                         </div>
+                                      </div>
+                                      
+                                      {hasSubItems && isExpanded && !isBulkMode && (
+                                          <div className="bg-stone-50/80 border-t border-stone-200/50 p-2 md:p-3 shadow-inner" onClick={e => e.stopPropagation()}>
+                                             <ul className="space-y-1.5">
+                                                {item.subItems.map(sub => {
+                                                   const isSubChecked = sub.checked;
+                                                   return (
+                                                     <li key={sub.id} className={`flex items-center justify-between p-2 md:p-2.5 rounded-xl border transition-colors ${isSubChecked ? 'bg-stone-100/50 border-transparent opacity-70' : 'bg-white border-stone-200 shadow-sm'}`}>
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                           <span className="cursor-pointer text-stone-300 hover:text-violet-500 transition-colors shrink-0 p-1 -ml-1" onClick={() => toggleSubItem(item.id, sub.id, 'toggle')}>
+                                                              {isSubChecked ? <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-violet-500" /> : <Square className="w-5 h-5 md:w-6 md:h-6" />}
+                                                           </span>
+                                                           <span className={`text-xs md:text-sm font-bold truncate ${isSubChecked ? 'line-through text-stone-400' : 'text-stone-700'}`}>{sub.name}</span>
+                                                        </div>
+                                                        <div className="shrink-0 ml-2">
+                                                           {sub.quantity > 1 ? (
+                                                              <div className="flex items-center gap-1 bg-stone-50 rounded-lg md:rounded-xl p-0.5 md:p-1 border border-stone-200/60 shadow-sm">
+                                                                  <button onClick={() => toggleSubItem(item.id, sub.id, 'decrement')} disabled={sub.checkedQuantity === 0} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Minus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                                  <span className="w-6 md:w-8 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{sub.checkedQuantity}/{sub.quantity}</span>
+                                                                  <button onClick={() => toggleSubItem(item.id, sub.id, 'increment')} disabled={sub.checkedQuantity === sub.quantity} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Plus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                              </div>
+                                                           ) : (
+                                                              <span className="text-[10px] md:text-xs font-bold text-stone-500 bg-white border border-stone-200 px-2 py-0.5 rounded-md shadow-sm">{sub.quantity}x</span>
+                                                           )}
+                                                        </div>
+                                                     </li>
+                                                   )
+                                                })}
+                                             </ul>
+                                          </div>
+                                      )}
+                                    </li>
+                                  )
+                                })}
+                                {openItems.length === 0 && doneItems.length === 0 && (<div className="text-center py-12 text-stone-400 font-medium bg-stone-50/50 rounded-2xl border border-dashed border-stone-200">Noch nichts zu packen!</div>)}
+                              </ul>
 
-                                        {hasSubItems && isExpanded && !isBulkMode && (
-                                            <div className="bg-stone-100/50 border-t border-stone-200/50 p-2 md:p-3 shadow-inner" onClick={e => e.stopPropagation()}>
-                                               <ul className="space-y-1.5">
-                                                  {item.subItems.map(sub => {
-                                                     const isSubChecked = sub.checked;
-                                                     return (
-                                                       <li key={sub.id} className={`flex items-center justify-between p-2 md:p-2.5 rounded-xl border transition-colors ${isSubChecked ? 'bg-stone-50 border-transparent opacity-80' : 'bg-white border-stone-200 shadow-sm'}`}>
-                                                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                             <span className="cursor-pointer text-stone-300 hover:text-violet-500 transition-colors shrink-0 p-1 -ml-1" onClick={() => toggleSubItem(item.id, sub.id, 'toggle')}>
-                                                                {isSubChecked ? <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-violet-500" /> : <Square className="w-5 h-5 md:w-6 md:h-6" />}
-                                                             </span>
-                                                             <span className={`text-xs md:text-sm font-bold truncate ${isSubChecked ? 'line-through text-stone-400' : 'text-stone-700'}`}>{sub.name}</span>
-                                                          </div>
-                                                          <div className="shrink-0 ml-2">
-                                                             {sub.quantity > 1 ? (
-                                                                <div className="flex items-center gap-1 bg-stone-50 rounded-lg md:rounded-xl p-0.5 md:p-1 border border-stone-200/60 shadow-sm">
-                                                                    <button onClick={() => toggleSubItem(item.id, sub.id, 'decrement')} disabled={sub.checkedQuantity === 0} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Minus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
-                                                                    <span className="w-6 md:w-8 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{sub.checkedQuantity}/{sub.quantity}</span>
-                                                                    <button onClick={() => toggleSubItem(item.id, sub.id, 'increment')} disabled={sub.checkedQuantity === sub.quantity} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Plus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
-                                                                </div>
-                                                             ) : (
-                                                                <span className="text-[10px] md:text-xs font-bold text-stone-400 bg-stone-50 border border-stone-200 px-2 py-0.5 rounded-md shadow-sm">{sub.quantity}x</span>
-                                                             )}
-                                                          </div>
-                                                       </li>
-                                                     )
-                                                  })}
-                                               </ul>
+                              {doneItems.length > 0 && (
+                                <div className="mt-6 md:mt-10 pt-4 md:pt-6 border-t border-stone-200/50 relative">
+                                  <h4 className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest mb-3 md:mb-4 px-2 flex items-center gap-2">
+                                    Erledigt <span className="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">{doneItems.length}</span>
+                                  </h4>
+                                  <ul className="space-y-2 md:space-y-2.5 opacity-80 hover:opacity-100 transition-opacity duration-500">
+                                    {doneItems.map(item => {
+                                      const maxQty = item.quantity || 1;
+                                      const hasSubItems = item.subItems && item.subItems.length > 0;
+                                      const isExpanded = expandedItems[item.id];
+
+                                      return (
+                                        <li key={`done-${item.id}`} className={`animate-drop-down flex flex-col items-stretch bg-stone-50/80 hover:bg-white rounded-xl md:rounded-2xl transition-all duration-300 border border-transparent hover:border-stone-200 relative overflow-hidden ${openMenuId === 'menu-item-done-'+item.id ? 'z-50 overflow-visible' : 'z-10 overflow-hidden'}`}>
+                                          <div 
+                                            className={`flex items-center justify-between p-2.5 md:p-3.5 w-full ${hasSubItems ? 'cursor-pointer' : ''}`}
+                                            onClick={() => { if (isBulkMode) toggleItem(item.id, 'toggle'); else if (hasSubItems) toggleExpand(item.id); }}
+                                          >
+                                            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                                              <span className="flex-shrink-0 cursor-pointer p-1 -ml-1" onClick={(e) => { e.stopPropagation(); toggleItem(item.id, 'toggle'); }}>
+                                                {isBulkMode ? (
+                                                  <div className={`w-6 h-6 md:w-7 md:h-7 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${selectedItemIds.includes(item.id) ? 'bg-violet-600 border-violet-600 shadow-md' : 'border-stone-300 bg-stone-100 hover:border-violet-400'}`}>
+                                                    {selectedItemIds.includes(item.id) && <Check className="h-4 w-4 md:h-5 md:w-5 text-white" strokeWidth="3" />}
+                                                  </div>
+                                                ) : (<CheckSquare className="h-6 w-6 md:h-7 md:w-7 text-violet-500" />)}
+                                              </span>
+                                              <div className="flex-1 flex flex-wrap items-center gap-1.5 md:gap-2 text-stone-500 line-through decoration-violet-300/50 decoration-2 text-xs md:text-sm font-medium leading-tight">
+                                                <span className="truncate">
+                                                  {maxQty > 1 && !hasSubItems ? <span className="font-bold text-violet-600 mr-1">{maxQty}x</span> : null}
+                                                  {editingId === `item-${item.id}` ? renderInlineInput(`item-${item.id}`) : item.name}
+                                                </span>
+                                                {hasSubItems && (
+                                                  <span className="bg-stone-200 text-stone-500 px-1.5 py-0.5 rounded md:rounded-md text-[9px] uppercase tracking-wider font-bold shrink-0 no-underline decoration-transparent">
+                                                    {item.subItems.length} Pers.
+                                                  </span>
+                                                )}
+                                              </div>
                                             </div>
-                                        )}
-                                      </li>
-                                    )
-                                  })}
-                                </ul>
-                              </div>
-                            )}
+                                            
+                                            {!isBulkMode && (
+                                              <div className="flex items-center shrink-0 ml-2">
+                                                {hasSubItems && (
+                                                    <div className="mr-1 text-stone-400 p-1 bg-stone-100 rounded-lg group-hover:bg-stone-200 group-hover:text-violet-600 transition-colors">
+                                                        {isExpanded ? <ChevronUp className="w-5 h-5 md:w-6 md:h-6"/> : <ChevronDown className="w-5 h-5 md:w-6 md:h-6"/>}
+                                                    </div>
+                                                )}
+                                                <div className="relative pl-1 md:pl-2">
+                                                  <button onClick={(e) => { e.stopPropagation(); setSortMenuOpen(false); setOpenMenuId(`menu-item-done-${item.id}`); }} className="p-2.5 md:p-2 text-stone-400 hover:text-violet-600 rounded-xl hover:bg-stone-100 transition-colors"><MoreVertical className="h-5 w-5" /></button>
+                                                  <DropdownMenu id={`menu-item-done-${item.id}`} options={[
+                                                      { label: 'Personen / Aufteilen', icon: <Users className="h-4 w-4"/>, action: () => openSubItemModal(item) },
+                                                      { separator: true },
+                                                      { label: 'Bearbeiten', icon: <Edit2 className="h-4 w-4"/>, action: () => {
+                                                          const editStr = maxQty > 1 && !hasSubItems ? `${maxQty}x ${item.name}` : item.name;
+                                                          startEdit(`item-${item.id}`, editStr);
+                                                      } },
+                                                      { separator: true },
+                                                      { label: 'Verschieben nach...', icon: <ArrowRightLeft className="h-4 w-4"/>, action: () => openTransferModal('move', 'item', item.id) },
+                                                      { label: 'Kopieren nach...', icon: <CopyIcon className="h-4 w-4"/>, action: () => openTransferModal('copy', 'item', item.id) },
+                                                      { separator: true },
+                                                      { label: 'Löschen', icon: <Trash2 className="h-4 w-4"/>, action: () => deleteItem(item.id), danger: true }
+                                                  ]} />
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
+
+                                          {hasSubItems && isExpanded && !isBulkMode && (
+                                              <div className="bg-stone-100/50 border-t border-stone-200/50 p-2 md:p-3 shadow-inner" onClick={e => e.stopPropagation()}>
+                                                 <ul className="space-y-1.5">
+                                                    {item.subItems.map(sub => {
+                                                       const isSubChecked = sub.checked;
+                                                       return (
+                                                         <li key={sub.id} className={`flex items-center justify-between p-2 md:p-2.5 rounded-xl border transition-colors ${isSubChecked ? 'bg-stone-50 border-transparent opacity-80' : 'bg-white border-stone-200 shadow-sm'}`}>
+                                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                               <span className="cursor-pointer text-stone-300 hover:text-violet-500 transition-colors shrink-0 p-1 -ml-1" onClick={() => toggleSubItem(item.id, sub.id, 'toggle')}>
+                                                                  {isSubChecked ? <CheckSquare className="w-5 h-5 md:w-6 md:h-6 text-violet-500" /> : <Square className="w-5 h-5 md:w-6 md:h-6" />}
+                                                               </span>
+                                                               <span className={`text-xs md:text-sm font-bold truncate ${isSubChecked ? 'line-through text-stone-400' : 'text-stone-700'}`}>{sub.name}</span>
+                                                            </div>
+                                                            <div className="shrink-0 ml-2">
+                                                               {sub.quantity > 1 ? (
+                                                                  <div className="flex items-center gap-1 bg-stone-50 rounded-lg md:rounded-xl p-0.5 md:p-1 border border-stone-200/60 shadow-sm">
+                                                                      <button onClick={() => toggleSubItem(item.id, sub.id, 'decrement')} disabled={sub.checkedQuantity === 0} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Minus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                                      <span className="w-6 md:w-8 text-center text-[10px] md:text-xs font-extrabold text-violet-700">{sub.checkedQuantity}/{sub.quantity}</span>
+                                                                      <button onClick={() => toggleSubItem(item.id, sub.id, 'increment')} disabled={sub.checkedQuantity === sub.quantity} className="p-1 md:p-1.5 hover:bg-white rounded-md md:rounded-lg text-stone-500 disabled:opacity-30 active:scale-90 transition-all"><Plus className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                                                                  </div>
+                                                               ) : (
+                                                                  <span className="text-[10px] md:text-xs font-bold text-stone-400 bg-stone-50 border border-stone-200 px-2 py-0.5 rounded-md shadow-sm">{sub.quantity}x</span>
+                                                               )}
+                                                            </div>
+                                                         </li>
+                                                       )
+                                                    })}
+                                                 </ul>
+                                              </div>
+                                          )}
+                                        </li>
+                                      )
+                                    })}
+                                  </ul>
+                                </div>
+                              )}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center p-16 bg-white/60 backdrop-blur-md rounded-3xl border border-dashed border-stone-300 shadow-sm mt-8">
-                        <Folder className="h-20 w-20 text-violet-200 mx-auto mb-6 drop-shadow-sm" />
-                        <h3 className="text-xl font-bold text-stone-700 mb-2">Keine Kategorie ausgewählt</h3>
-                        <p className="text-sm text-stone-500">Wähle links eine Liste aus oder erstelle eine neue.</p>
-                      </div>
-                    )}
+                      ) : (
+                        <div className="text-center p-16 bg-white/60 backdrop-blur-md rounded-3xl border border-dashed border-stone-300 shadow-sm mt-8">
+                          <Folder className="h-20 w-20 text-violet-200 mx-auto mb-6 drop-shadow-sm" />
+                          <h3 className="text-xl font-bold text-stone-700 mb-2">Keine Kategorie ausgewählt</h3>
+                          <p className="text-sm text-stone-500">Wähle links eine Liste aus oder erstelle eine neue.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
                 {isBulkMode && selectedItemIds.length > 0 && (
-                  <div className="fixed bottom-0 left-0 md:left-80 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 p-4 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-40 flex justify-center gap-3 flex-wrap">
+                  <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 md:left-80 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 p-4 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-50 flex justify-center gap-3 flex-wrap">
                      <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><ArrowRightLeft className="h-4 w-4"/> Verschieben ({selectedItemIds.length})</button>
                      <button onClick={() => openTransferModal('copy', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><CopyIcon className="h-4 w-4"/> Kopieren</button>
                      <button onClick={executeBulkDelete} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all shadow-sm hover:shadow"><Trash2 className="h-4 w-4"/> Löschen</button>
@@ -1285,8 +1237,23 @@
             )}
           </main>
 
+          {/* MOBILE BOTTOM NAVIGATION BAR */}
+          {!isBulkMode && (
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 z-50 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] transition-transform duration-300">
+              <div className="flex justify-between items-center px-4 py-2">
+                <div className="flex items-center gap-2 font-extrabold text-lg text-violet-800 cursor-pointer" onClick={() => setIsSidebarOpen(false)}>
+                  <Tent className="h-7 w-7 text-violet-600" /> <span className="truncate">{appTitle}</span>
+                </div>
+                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 bg-violet-100 text-violet-700 rounded-2xl hover:bg-violet-200 active:scale-95 transition-all shadow-sm">
+                  {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* MODALS */}
           {confirmDialog.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={closeConfirm}>
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={closeConfirm}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-stone-100" onClick={e => e.stopPropagation()}>
                 <div className="p-8">
                   <div className="flex items-center gap-3 text-violet-500 mb-4"><AlertTriangle className="h-8 w-8" /><h3 className="text-xl font-extrabold text-stone-800">Sicher?</h3></div>
@@ -1301,7 +1268,7 @@
           )}
 
           {transferModal.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={() => setTransferModal({isOpen: false})}>
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setTransferModal({isOpen: false})}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b border-stone-100/50 bg-stone-50/50"><h3 className="text-xl font-extrabold text-stone-800">{transferModal.action === 'move' ? 'Verschieben nach...' : 'Kopieren nach...'}</h3></div>
                 <div className="p-6 space-y-5">
@@ -1329,7 +1296,7 @@
           )}
 
           {iconModal.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={() => setIconModal({ isOpen: false, listId: null })}>
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setIconModal({ isOpen: false, listId: null })}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
                 <div className="p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center">
                   <h3 className="text-xl font-extrabold text-stone-800">Icon auswählen</h3>
@@ -1347,7 +1314,7 @@
           )}
 
           {subItemModal.isOpen && (
-            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-slide-in" onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})}>
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})}>
               <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
                 <div className="p-5 md:p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center shrink-0">
                   <h3 className="text-lg md:text-xl font-extrabold text-stone-800 truncate">"{subItemModal.item?.name}" aufteilen</h3>
@@ -1396,7 +1363,7 @@
             </div>
           )}
 
-          {isSidebarOpen && <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm z-20 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+          {isSidebarOpen && <div className="fixed inset-0 bg-stone-900/30 backdrop-blur-sm z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
         </div>
       );
     }
