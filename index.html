@@ -89,7 +89,7 @@
     <div id="splash">
       <svg class="splash-icon w-24 h-24 mb-6 text-fuchsia-200 drop-shadow-xl" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20 10 4"/><path d="m5 20 9-16"/><path d="M3 20h18"/><path d="m12 15-3 5"/><path d="m12 15 3 5"/></svg>
       <h1 class="splash-title text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md mb-3">Holiday Planer</h1>
-      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.6</span>
+      <span class="splash-version text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold">v1.6.7</span>
       <div class="splash-loader flex flex-col items-center gap-3">
         <div class="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
         <div class="text-[10px] font-extrabold text-white/80 tracking-widest uppercase">App wird gestartet...</div>
@@ -691,7 +691,7 @@
         <div id="splash" className="fixed inset-0 bg-gradient-to-br from-violet-900 via-violet-800 to-fuchsia-600 flex flex-col items-center justify-center text-white z-[9999]">
           <Tent className="w-24 h-24 mb-6 text-fuchsia-200 drop-shadow-xl splash-icon" />
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight drop-shadow-md mb-3 splash-title">Holiday Planer</h1>
-          <span className="text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold splash-version">v1.6.6</span>
+          <span className="text-xs font-mono bg-white/20 px-2.5 py-1 rounded-md backdrop-blur-sm shadow-inner font-bold splash-version">v1.6.7</span>
           <div className="flex flex-col items-center gap-3 mt-12 splash-loader">
             <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"></div>
             <div className="text-[10px] font-extrabold text-white/80 tracking-widest uppercase">App wird gestartet...</div>
@@ -729,7 +729,7 @@
       };
 
       return (
-        <div className="h-[100dvh] w-full font-sans text-stone-800 flex flex-row overflow-hidden relative">
+        <div className="fixed inset-0 w-full font-sans text-stone-800 flex flex-row overflow-hidden">
           
           {/* SIDEBAR (Immer offen auf Desktop, via Menü auf Mobile) */}
           <aside className={`
@@ -743,7 +743,7 @@
               <div className="min-w-0 flex-1">
                 <div className="flex items-center">
                   <h1 className="font-bold text-xl tracking-wide truncate drop-shadow-sm">{appTitle}</h1>
-                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.6</span>
+                  <span className="text-[10px] bg-black/20 text-white px-1.5 py-0.5 rounded ml-2 font-mono shrink-0 shadow-inner">v1.6.7</span>
                 </div>
                 <p className="text-violet-200 text-xs uppercase tracking-wider font-semibold flex items-center gap-1 mt-0.5 opacity-90"><Cloud className="h-3 w-3"/> Cloud Sync</p>
               </div>
@@ -843,7 +843,7 @@
               {folders.length === 0 && <div className="text-center p-6 text-stone-400 text-sm">Noch keine Trips in deiner Cloud.</div>}
             </div>
 
-            <div className="p-4 bg-white/90 backdrop-blur-md border-t border-stone-100 shrink-0 pb-[calc(1rem+env(safe-area-inset-bottom))] md:pb-4">
+            <div className="p-4 bg-white/90 backdrop-blur-md border-t border-stone-100 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] md:pb-4">
               <form onSubmit={addFolder}>
                 <div className="relative group">
                   <input type="text" placeholder="Neuen Trip anlegen..." value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-xl py-3 pl-4 pr-10 text-sm focus:bg-white focus:ring-2 focus:ring-violet-500/50 outline-none transition-all placeholder:text-stone-400 shadow-sm" />
@@ -946,7 +946,7 @@
                 <div className="flex-1 flex overflow-hidden relative">
                   
                   {/* KATEGORIE INHALT (Rechts / Haupt) */}
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-8 relative pb-[max(2rem,env(safe-area-inset-bottom))] md:pb-8">
                     <div className="w-full max-w-full mx-auto relative h-full min-h-full">
                       {activeList ? (
                         <div key={activeList.id} className="bg-white/90 backdrop-blur-md rounded-2xl md:rounded-3xl shadow-xl border border-white/50 p-3 md:p-8 mb-4 relative">
@@ -1262,13 +1262,13 @@
                       )}
                       
                       {/* Abstandshalter, damit man am Handy bis ganz nach unten scrollen kann */}
-                      <div className="h-48 md:h-0 w-full shrink-0 pointer-events-none"></div>
+                      <div className="h-32 md:h-0 w-full shrink-0 pointer-events-none"></div>
                     </div>
                   </div>
                 </div>
                 
                 {isBulkMode && selectedItemIds.length > 0 && (
-                  <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 md:left-80 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 p-4 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-50 flex justify-center gap-3 flex-wrap">
+                  <div className="fixed bottom-0 left-0 md:left-80 right-0 bg-white/95 backdrop-blur-xl border-t border-stone-200 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-50 flex justify-center gap-3 flex-wrap">
                      <button onClick={() => openTransferModal('move', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><ArrowRightLeft className="h-4 w-4"/> Verschieben in ({selectedItemIds.length})</button>
                      <button onClick={() => openTransferModal('copy', 'bulk-items', selectedItemIds)} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl font-bold transition-all shadow-sm hover:shadow"><CopyIcon className="h-4 w-4"/> Kopieren in</button>
                      <button onClick={executeBulkDelete} className="flex items-center gap-2 px-5 py-3 md:py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-all shadow-sm hover:shadow"><Trash2 className="h-4 w-4"/> Löschen</button>
@@ -1287,13 +1287,15 @@
           {/* MODALS */}
           {confirmDialog.isOpen && (
             <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={closeConfirm}>
-              <div className="flex justify-between items-center px-4 py-2">
-                <div className="flex items-center gap-2 font-extrabold text-lg text-violet-800 cursor-pointer" onClick={() => setIsSidebarOpen(false)}>
-                  <Tent className="h-7 w-7 text-violet-600" /> <span className="truncate">{appTitle}</span>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-stone-100" onClick={e => e.stopPropagation()}>
+                <div className="p-8">
+                  <div className="flex items-center gap-3 text-violet-500 mb-4"><AlertTriangle className="h-8 w-8" /><h3 className="text-xl font-extrabold text-stone-800">Sicher?</h3></div>
+                  <p className="text-stone-600 mb-8 font-medium leading-relaxed">{confirmDialog.message}</p>
+                  <div className="flex justify-end gap-3">
+                    <button onClick={closeConfirm} className="px-5 py-3 md:py-2.5 text-stone-500 font-bold hover:bg-stone-100 rounded-xl transition-colors">Abbrechen</button>
+                    <button onClick={() => { if(confirmDialog.onConfirm) confirmDialog.onConfirm(); closeConfirm(); }} className="px-5 py-3 md:py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Ja, ausführen</button>
+                  </div>
                 </div>
-                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-3 bg-violet-100 text-violet-700 rounded-2xl hover:bg-violet-200 active:scale-95 transition-all shadow-sm">
-                  {isSidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-                </button>
               </div>
             </div>
           )}
@@ -1325,9 +1327,109 @@
                     </div>
                   </div>
                 </div>
+                <div className="p-4 md:p-5 bg-stone-50/80 flex justify-between items-center gap-3 border-t border-stone-100/50 shrink-0">
+                  <span className="text-[10px] font-mono text-stone-400 font-bold ml-1">v1.6.7</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
+                    <button onClick={saveFolderSettings} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ... Weitere Modals ... */}
+          {transferModal.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setTransferModal({isOpen: false})}>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-stone-100/50 bg-stone-50/50"><h3 className="text-xl font-extrabold text-stone-800">{transferModal.action === 'move' ? 'Verschieben nach...' : 'Kopieren nach...'}</h3></div>
+                <div className="p-6 space-y-5">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel Trip</label>
+                    <select value={targetFolderId} onChange={(e) => { setTargetFolderId(e.target.value); const folderLists = lists.filter(l => l.folderId === e.target.value); setTargetListId(folderLists.length > 0 ? folderLists[0].id : ''); }} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
+                      <option value="" disabled>Bitte wählen...</option>{folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </select>
+                  </div>
+                  {(transferModal.sourceType === 'item' || transferModal.sourceType === 'bulk-items') && targetFolderId && (
+                    <div className="animate-slide-in">
+                      <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Ziel Kategorie</label>
+                      <select value={targetListId} onChange={(e) => setTargetListId(e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-2xl p-4 md:p-3.5 outline-none focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500 font-medium text-stone-700 transition-all shadow-inner">
+                        <option value="" disabled>Bitte wählen...</option>{lists.filter(l => l.folderId === targetFolderId).map(l => ( <option key={l.id} value={l.id}>{l.name}</option> ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+                <div className="p-5 bg-stone-50/80 flex justify-end gap-3 border-t border-stone-100/50">
+                  <button onClick={() => setTransferModal({isOpen: false})} className="px-5 py-3 md:py-2.5 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
+                  <button onClick={executeTransfer} disabled={transferModal.sourceType !== 'list' && !targetListId} className="px-5 py-3 md:py-2.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">Ausführen</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {iconModal.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setIconModal({ isOpen: false, listId: null })}>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-stone-100" onClick={e => e.stopPropagation()}>
+                <div className="p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center">
+                  <h3 className="text-xl font-extrabold text-stone-800">Icon auswählen</h3>
+                  <button onClick={() => setIconModal({ isOpen: false, listId: null })} className="p-2 text-stone-400 hover:bg-stone-200 rounded-full transition-colors"><X className="h-5 w-5"/></button>
+                </div>
+                <div className="p-6 grid grid-cols-5 md:grid-cols-6 gap-3">
+                  {EMOJI_OPTIONS.map(emoji => (
+                    <button key={emoji} onClick={() => selectEmoji(emoji)} className="text-3xl p-2 hover:bg-violet-100 rounded-xl transition-all hover:scale-110 active:scale-95 flex items-center justify-center">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {subItemModal.isOpen && (
+            <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-slide-in" onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})}>
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-stone-100 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                <div className="p-5 md:p-6 border-b border-stone-100/50 bg-stone-50/50 flex justify-between items-center shrink-0">
+                  <h3 className="text-lg md:text-xl font-extrabold text-stone-800 truncate">"{subItemModal.item?.name}" aufteilen</h3>
+                  <button onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})} className="p-2 text-stone-400 hover:bg-stone-200 rounded-full transition-colors"><X className="h-5 w-5"/></button>
+                </div>
+                <div className="p-4 md:p-6 overflow-y-auto flex-1">
+                  <div className="space-y-3 md:space-y-4 mb-6">
+                     {subItemModal.subItems.map((sub, idx) => (
+                         <div key={sub.id} className="flex items-center gap-2 md:gap-3 animate-slide-up-open">
+                             <input type="text" value={sub.name} placeholder="Wer/Was? (z.B. Cathrin)" onChange={e => {
+                                 const newSubs = [...subItemModal.subItems];
+                                 newSubs[idx].name = e.target.value;
+                                 setSubItemModal({...subItemModal, subItems: newSubs});
+                             }} className="flex-1 min-w-0 bg-stone-50 border border-stone-200 focus:bg-white focus:border-violet-400 rounded-xl px-3 md:px-4 py-2.5 md:py-3 text-sm outline-none transition-all shadow-inner" />
+                             
+                             <div className="flex items-center shrink-0 bg-stone-50 border border-stone-200 rounded-xl shadow-inner px-1 py-0.5">
+                                <button onClick={() => {
+                                    const newSubs = [...subItemModal.subItems];
+                                    newSubs[idx].quantity = Math.max(1, (newSubs[idx].quantity || 1) - 1);
+                                    setSubItemModal({...subItemModal, subItems: newSubs});
+                                }} className="p-2 text-stone-500 hover:text-violet-600 transition-colors"><Minus className="h-3.5 w-3.5 md:h-4 md:w-4"/></button>
+                                <span className="w-5 md:w-7 text-center font-bold text-sm text-stone-700">{sub.quantity}</span>
+                                <button onClick={() => {
+                                    const newSubs = [...subItemModal.subItems];
+                                    newSubs[idx].quantity = (newSubs[idx].quantity || 1) + 1;
+                                    setSubItemModal({...subItemModal, subItems: newSubs});
+                                }} className="p-2 text-stone-500 hover:text-violet-600 transition-colors"><Plus className="h-3.5 w-3.5 md:h-4 md:w-4"/></button>
+                             </div>
+
+                             <button onClick={() => {
+                                 const newSubs = subItemModal.subItems.filter((_, i) => i !== idx);
+                                 setSubItemModal({...subItemModal, subItems: newSubs});
+                             }} className="p-2 md:p-3 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors shrink-0"><Trash2 className="w-4 h-4 md:w-5 md:h-5"/></button>
+                         </div>
+                     ))}
+                  </div>
+                  <button onClick={() => setSubItemModal({...subItemModal, subItems: [...subItemModal.subItems, { id: generateId(), name: '', quantity: 1, checkedQuantity: 0 }]})} className="w-full py-3 md:py-3.5 border-2 border-dashed border-stone-300 text-stone-500 hover:text-violet-600 hover:border-violet-400 hover:bg-violet-50 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm">
+                     <Plus className="w-4 h-4" /> Person / Zuordnung hinzufügen
+                  </button>
+                </div>
                 <div className="p-4 md:p-5 bg-stone-50/80 flex justify-end gap-3 border-t border-stone-100/50 shrink-0">
-                  <button onClick={() => setEditFolderModal({isOpen: false, id: null, name: '', date: '', region: ''})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
-                  <button onClick={saveFolderSettings} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
+                  <button onClick={() => setSubItemModal({isOpen: false, item: null, subItems: []})} className="px-4 py-2.5 md:px-5 md:py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors">Abbrechen</button>
+                  <button onClick={saveSubItems} className="px-5 py-2.5 md:px-6 md:py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">Speichern</button>
                 </div>
               </div>
             </div>
